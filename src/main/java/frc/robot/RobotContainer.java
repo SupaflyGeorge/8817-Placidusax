@@ -40,72 +40,6 @@ public class RobotContainer {
     public final IndexerSubsystem indexer = new IndexerSubsystem();
 
     private final SendableChooser<Command> autoChooser = new SendableChooser<>();
-
-  private void configureNamedCommands() {
-  NamedCommands.registerCommand(
-      "PrepareShot",
-      new AutoStateCommand(
-          AutoStateCommand.AutoAction.PREPARE_SHOT,
-          shooter, indexer, intake, intakePivot
-      )
-  );
-
-  NamedCommands.registerCommand(
-      "Shoot",
-      new AutoStateCommand(
-          AutoStateCommand.AutoAction.SHOOT,
-          shooter, indexer, intake, intakePivot
-      )
-  );
-
-  NamedCommands.registerCommand(
-      "Intake",
-      new AutoStateCommand(
-          AutoStateCommand.AutoAction.INTAKE,
-          shooter, indexer, intake, intakePivot
-      )
-  );
-
-  NamedCommands.registerCommand(
-      "Spit",
-      new AutoStateCommand(
-          AutoStateCommand.AutoAction.SPIT,
-          shooter, indexer, intake, intakePivot
-      )
-  );
-
-  NamedCommands.registerCommand(
-      "DeployIntake",
-      new AutoStateCommand(
-          AutoStateCommand.AutoAction.DEPLOY_INTAKE,
-          shooter, indexer, intake, intakePivot
-      )
-  );
-
-  NamedCommands.registerCommand(
-      "StowIntake",
-      new AutoStateCommand(
-          AutoStateCommand.AutoAction.STOW_INTAKE,
-          shooter, indexer, intake, intakePivot
-      )
-  );
-
-  NamedCommands.registerCommand(
-      "Index",
-      new AutoStateCommand(
-          AutoStateCommand.AutoAction.INDEX,
-          shooter, indexer, intake, intakePivot
-      )
-  );
-
-  NamedCommands.registerCommand(
-      "StopAll",
-      new AutoStateCommand(
-          AutoStateCommand.AutoAction.STOP_ALL,
-          shooter, indexer, intake, intakePivot
-      )
-  );
-}
     
 
     private void configureAutoChooser() {
@@ -147,7 +81,6 @@ public class RobotContainer {
 
     public RobotContainer() {
         drivetrain.configurePathPlanner();
-        configureNamedCommands();
         configureAutoChooser();
         configureBindings();
     }
