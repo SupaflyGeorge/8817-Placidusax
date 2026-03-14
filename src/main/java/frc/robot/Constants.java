@@ -74,7 +74,7 @@ public final class Constants {
     public static final String CANBUS = ""; 
 
     // Flywheels
-    public static final double FLYWHEEL_GEAR_RATIO = 1.0; // motorRot / wheelRot
+    public static final double FLYWHEEL_GEAR_RATIO = 1.0; //orRot / wheelRot
 
   
     public static final double kP = 0.10;
@@ -88,9 +88,21 @@ public final class Constants {
     public static final double SHOOTER_TOP_RPS = 30.50;
     public static final double SHOOTER_BOTTOM_RPS = 30.50;
     public static final double FEEDER_IDLE_RPS = 0.0;
-    public static final double FEEDER_RPS = 60.0;
-    public static final double INDEXER_RPS = 60.0;
+    public static final double FEEDER_RPS = 100.0;
+    public static final double INDEXER_RPS = 80.0;
     public static final double INDEXER_IDLE_RPS = 0.0;
+
+    public static final double SHOOTER_MIN_RPS = 0.0;
+    public static final double SHOOTER_MAX_RPS = 120.0;
+
+    public static final double TOP_RPS_PER_METER = 4.0;
+    public static final double BOTTOM_RPS_PER_METER = 4.0;
+
+    public static final double TOP_RPS_PER_LATERAL_METER = 2.0;
+    public static final double BOTTOM_RPS_PER_LATERAL_METER = 2.0;
+
+    public static final double TOP_RPS_PER_FORWARD_METER = 0.0;
+    public static final double BOTTOM_RPS_PER_FORWARD_METER = 0.0;
 
    
 
@@ -164,7 +176,7 @@ public static final class IndexerConstants {
   public static final int BELTER_ID = 15;
 
   // Output
-  public static final double BELT_PERCENT = 0.75;
+  public static final double BELT_PERCENT = 0.8;
 
   // Invert
   public static final boolean BELT_INVERTED = true;

@@ -11,6 +11,9 @@ import org.littletonrobotics.junction.Logger;
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 
+import edu.wpi.first.networktables.GenericEntry;
+import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
+import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -24,6 +27,7 @@ import frc.robot.subsystems.intakepivot.IntakePivotSubsystem;
 import frc.robot.subsystems.shooter.ShooterSubsystem;
 import frc.robot.subsystems.vision.Vision;
 import frc.robot.commands.ShootOnMoveCommand;
+import frc.robot.commands.autos.OutpostDoubleSwipe;
 import frc.robot.commands.autos.OutpostSingleSwipe;
 import frc.robot.commands.AutoStateCommand;
 import frc.robot.commands.AutoShootAlignedCommand;
@@ -58,11 +62,20 @@ public class RobotContainer {
     );
 
     autoChooser.addOption(
-        "PathPlanner Auto",
-        drivetrain.getAutoCommand("Please Work Auto")
+        "Outpost Double Swipe",
+        OutpostDoubleSwipe.build(
+            drivetrain,
+            shooter,
+            indexer,
+            intake,
+            intakePivot,
+            vision,
+            MaxAngularRate
+        )
     );
 
-    SmartDashboard.putData("Auto Chooser", autoChooser);
+      ShuffleboardTab autoTab = Shuffleboard.getTab("Autonomous");
+      autoTab.add(autoChooser);
 }
     private double MaxSpeed = 1.0 * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond);
     private double MaxAngularRate = RotationsPerSecond.of(0.75).in(RadiansPerSecond);
@@ -88,8 +101,8 @@ public class RobotContainer {
     private void configureBindings() {
         drivetrain.setDefaultCommand(
             drivetrain.applyRequest(() ->
-                drive.withVelocityX(-driver.getLeftY() * MaxSpeed)
-                    .withVelocityY(-driver.getLeftX() * MaxSpeed)
+                drive.withVelocityX(driver.getLeftY() * MaxSpeed)
+                    .withVelocityY(driver.getLeftX() * MaxSpeed)
                     .withRotationalRate(-driver.getRightX() * MaxAngularRate)
             )
         );
@@ -170,12 +183,12 @@ public class RobotContainer {
           .whileTrue(Commands.runOnce(() -> indexer.setWantedState(IndexerSubsystem.WantedState.INDEX)))
           .whileFalse(Commands.runOnce(() -> indexer.setWantedState(IndexerSubsystem.WantedState.IDLE)));
 
-        /*  Chris
-        operator.a()
+        //  Chris
+        operator.y()
         .whileTrue(Commands.runOnce(() -> intakePivot.setWantedState(IntakePivotSubsystem.WantedState.DEPLOY)))
         .whileFalse(Commands.runOnce(() -> intakePivot.setWantedState(IntakePivotSubsystem.WantedState.IDLE)));
 
-        operator.b()
+        operator.a()
         .whileTrue(Commands.runOnce(() -> intakePivot.setWantedState(IntakePivotSubsystem.WantedState.STOW)))
         .whileFalse(Commands.runOnce(() -> intakePivot.setWantedState(IntakePivotSubsystem.WantedState.IDLE)));
 
@@ -187,17 +200,22 @@ public class RobotContainer {
         .whileTrue(Commands.runOnce(() -> shooter.setWantedState(ShooterSubsystem.WantedState.PREPARE_SHOT)))
         .whileFalse(Commands.runOnce(() -> shooter.setWantedState(ShooterSubsystem.WantedState.IDLE)));
 
-        operator.leftBumper()
+        operator.leftTrigger()
         .whileTrue(Commands.runOnce(() -> intake.setWantedState(IntakeSubsystem.WantedState.SPIT)))
         .whileFalse(Commands.runOnce(() -> intake.setWantedState(IntakeSubsystem.WantedState.IDLE)));
+
+        operator.rightTrigger()
+          .whileTrue(Commands.runOnce(() -> intake.setWantedState(IntakeSubsystem.WantedState.INTAKE)))
+          .whileFalse(Commands.runOnce(() -> intake.setWantedState(IntakeSubsystem.WantedState.IDLE)));
 
         operator.povUp()
         .whileTrue(Commands.run(() -> shooter.adjustHoodManual(+0.01)));
 
         operator.povDown()
         .whileTrue(Commands.run(() -> shooter.adjustHoodManual(-0.01)));
-        */
-    }
+
+  
+          }
 
     public void periodic() {
       Logger.recordOutput("AutoDebug/Test", true);

@@ -3,64 +3,69 @@
   "waypoints": [
     {
       "anchor": {
-        "x": 4.414279600570612,
-        "y": 0.71623395149786
+        "x": 6.0057346647646215,
+        "y": 3.5498002853067057
       },
       "prevControl": null,
       "nextControl": {
-        "x": 5.0425962213719835,
-        "y": 0.7077057352888706
+        "x": 7.078682787589617,
+        "y": 4.162187585499075
       },
       "isLocked": false,
-      "linkedName": null
+      "linkedName": "Swipe 2 1/2"
     },
     {
       "anchor": {
-        "x": 5.837532097004279,
-        "y": 0.71623395149786
+        "x": 7.830085592011411,
+        "y": 2.6829101283880177
       },
       "prevControl": {
-        "x": 5.59169757489301,
-        "y": 0.6644793152639101
+        "x": 7.873261260245781,
+        "y": 4.00607101749074
       },
       "nextControl": {
-        "x": 6.543433513355926,
-        "y": 0.8648447759929391
+        "x": 7.818105856933573,
+        "y": 2.3157793446613524
       },
       "isLocked": false,
       "linkedName": null
     },
     {
       "anchor": {
-        "x": 6.898502139800283,
-        "y": 1.0526390870185458
+        "x": 6.523281027104137,
+        "y": 0.7679885877318122
       },
       "prevControl": {
-        "x": 6.600325038644505,
-        "y": 0.8641857197983673
+        "x": 6.895798889111402,
+        "y": 0.9506851284434368
       },
       "nextControl": {
-        "x": 7.196679240956061,
-        "y": 1.2410924542387243
+        "x": 6.072341505790279,
+        "y": 0.5468311641111676
       },
       "isLocked": false,
       "linkedName": null
     },
     {
       "anchor": {
-        "x": 7.674821683309556,
-        "y": 1.8160199714693293
+        "x": 4.453095577746077,
+        "y": 0.7679885877318122
       },
       "prevControl": {
-        "x": 7.924813516857618,
-        "y": 1.8180406543434429
+        "x": 4.807230843278613,
+        "y": 0.7284149528661412
       },
       "nextControl": null,
       "isLocked": false,
-      "linkedName": "Zone"
+      "linkedName": "Traveled Swipe 1"
     }
   ],
-  "rotationTargets": [],
+  "rotationTargets": [
+    {
+      "waypointRelativePos": 1,
+      "rotationDegrees": -90.0
+    }
+  ],
   "constraintZones": [],
   "pointTowardsZones": [],
   "eventMarkers": [],
@@ -74,13 +79,13 @@
   },
   "goalEndState": {
     "velocity": 0,
-    "rotation": 83.54118362128118
+    "rotation": -88.36342295838328
   },
   "reversed": false,
-  "folder": "Outpost Single",
+  "folder": "Outpost Double",
   "idealStartingState": {
     "velocity": 0,
-    "rotation": 0.0
+    "rotation": 83.0887728809754
   },
   "useDefaultConstraints": true
 }
