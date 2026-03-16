@@ -11,11 +11,11 @@ import org.littletonrobotics.junction.Logger;
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 
-import edu.wpi.first.networktables.GenericEntry;
+//import edu.wpi.first.networktables.GenericEntry;
 import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+//import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
@@ -30,10 +30,10 @@ import frc.robot.subsystems.vision.Vision;
 import frc.robot.commands.ShootOnMoveCommand;
 import frc.robot.commands.autos.OutpostDoubleSwipe;
 import frc.robot.commands.autos.OutpostSingleSwipe;
-import frc.robot.commands.AutoStateCommand;
-import frc.robot.commands.AutoShootAlignedCommand;
+//import frc.robot.commands.AutoStateCommand;
+//import frc.robot.commands.AutoShootAlignedCommand;
 import frc.robot.generated.TunerConstants;
-import com.pathplanner.lib.auto.NamedCommands;
+//import com.pathplanner.lib.auto.NamedCommands;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 
 public class RobotContainer {

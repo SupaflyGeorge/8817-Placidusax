@@ -69,6 +69,7 @@ public class OutpostDoubleSwipe {
             shooter,
             indexer,
             vision,
+            intakePivot,
             maxAngularRateRps
         ).withTimeout(2.5),
         
@@ -100,6 +101,7 @@ public class OutpostDoubleSwipe {
             shooter,
             indexer,
             vision,
+            intakePivot,
             maxAngularRateRps
         ).withTimeout(2.5)
     );

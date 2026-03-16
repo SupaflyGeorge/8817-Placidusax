@@ -101,6 +101,7 @@ public class OutpostSingleSwipe {
             shooter,
             indexer,
             vision,
+            intakePivot,
             maxAngularRateRps
         ).withTimeout(2.5)
     );
