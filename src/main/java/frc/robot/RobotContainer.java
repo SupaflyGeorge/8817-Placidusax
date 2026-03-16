@@ -18,6 +18,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 
@@ -48,7 +49,7 @@ public class RobotContainer {
 
     private void configureAutoChooser() {
 
-    autoChooser.setDefaultOption(
+    autoChooser.addOption(
         "Outpost Single Swipe",
         OutpostSingleSwipe.build(
             drivetrain,
@@ -61,7 +62,7 @@ public class RobotContainer {
         )
     );
 
-    autoChooser.addOption(
+    autoChooser.setDefaultOption(
         "Outpost Double Swipe",
         OutpostDoubleSwipe.build(
             drivetrain,
@@ -118,7 +119,7 @@ public class RobotContainer {
         drivetrain.registerTelemetry(logger::telemeterize);
 
         // Driver Controls
-        driver.y().whileTrue(
+        /*driver.y().whileTrue(
             drivetrain.applyRequest(() -> {
               double vx = -driver.getLeftY() * MaxSpeed;
               double vy = -driver.getLeftX() * MaxSpeed;
@@ -131,7 +132,7 @@ public class RobotContainer {
                   .withVelocityY(vy)
                   .withRotationalRate(omegaCmd);
             })
-        );
+        );*/
 
         // Hold = prepare shot (spin + aim hood), release = idle (hood returns to 0)
         driver.rightBumper()
@@ -145,8 +146,9 @@ public class RobotContainer {
             shooter,
             vision,
             indexer,
-            () -> -driver.getLeftY(),
-            () -> -driver.getLeftX(),
+            intakePivot,
+            () -> driver.getLeftY(),
+            () -> driver.getLeftX(),
             () -> -driver.getRightX(),
             MaxSpeed,
             MaxAngularRate
@@ -182,6 +184,15 @@ public class RobotContainer {
         driver.x()
           .whileTrue(Commands.runOnce(() -> indexer.setWantedState(IndexerSubsystem.WantedState.INDEX)))
           .whileFalse(Commands.runOnce(() -> indexer.setWantedState(IndexerSubsystem.WantedState.IDLE)));
+
+        driver.y().onTrue(
+          new InstantCommand(() -> shooter.increaseShooterSpeed()));
+
+        driver.povLeft().onTrue(
+          new InstantCommand(() -> shooter.decreaseShooterSpeed()));
+
+        driver.povRight().onTrue(
+          new InstantCommand(() -> shooter.resetShooterOffset()));
 
         //  Chris
         operator.y()

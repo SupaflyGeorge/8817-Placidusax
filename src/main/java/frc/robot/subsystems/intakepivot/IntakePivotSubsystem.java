@@ -32,9 +32,18 @@ public class IntakePivotSubsystem extends SubsystemBase {
     return wanted;
   }
 
-  // for your current sign convention:
-  // MIN_ROT = 0.0
-  // MAX_ROT = -0.48
+  public double getPivotPositionRot() {
+    return inputs.pivotPositionRot;
+  }
+
+  public void setOpenLoopPercent(double percent) {
+    io.setPercent(MathUtil.clamp(percent, -0.2, 0.2));
+  }
+
+  public void stopOpenLoop() {
+    io.stop();
+  }
+
   private boolean atOrPastMax() {
     return inputs.pivotPositionRot >= Constants.IntakePivotConstants.MAX_ROT;
   }

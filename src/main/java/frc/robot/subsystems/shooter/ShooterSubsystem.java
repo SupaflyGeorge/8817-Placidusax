@@ -1,6 +1,5 @@
 package frc.robot.subsystems.shooter;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.photonvision.PhotonCamera;
@@ -32,10 +31,10 @@ public class ShooterSubsystem extends SubsystemBase {
     public final double forwardM;
     public final double lateralM;
 
-    public TagAimData(double distanceM, double forwardM, double lateralM) {
-      this.distanceM = distanceM;
-      this.forwardM = forwardM;
-      this.lateralM = lateralM;
+    public TagAimData(double d, double f, double l) {
+      distanceM = d;
+      forwardM = f;
+      lateralM = l;
     }
   }
 
@@ -49,30 +48,34 @@ public class ShooterSubsystem extends SubsystemBase {
 
   private WantedState wanted = WantedState.IDLE;
 
-  private double targetTopRps = 0.0;
-  private double targetBottomRps = 0.0;
-  private double targetFeedRps = 0.0;
-  private double targetHoodRot = 0.0;
+  private double targetTopRps;
+  private double targetBottomRps;
+  private double targetFeedRps;
+  private double targetHoodRot;
+
+  private double mapRps;
+  private double mapHoodRot;
 
   private boolean feedEnabled = false;
 
-  private boolean hoodManualMode = true;
+  private boolean hoodManualMode = false;
   private double hoodManualRot = 0.0;
 
   private boolean shooterManualMode = false;
   private double shooterManualTopRps = 0.0;
   private double shooterManualBottomRps = 0.0;
 
-  @SuppressWarnings("unused")
-  private double filteredDistM = -1;
+  private double shooterRpsOffset = 0.0;
 
   private static final double READY_TOL_RPS = Constants.ShooterConstants.READY_TOL_RPS;
   private static final double READY_MIN_RPS = Constants.ShooterConstants.READY_MIN_RPS;
 
   public ShooterSubsystem() {
+
     SmartDashboard.putBoolean("Shooter/ManualSpeedMode", false);
     SmartDashboard.putNumber("Shooter/ManualTopRPS", Constants.ShooterConstants.SHOOTER_TOP_RPS);
     SmartDashboard.putNumber("Shooter/ManualBottomRPS", Constants.ShooterConstants.SHOOTER_BOTTOM_RPS);
+    SmartDashboard.putNumber("Shooter/RpsOffset", 0.0);
 
     SmartDashboard.putBoolean("Hood/ManualTargetFromDashboard", false);
     SmartDashboard.putNumber("Hood/ManualTargetRot", 0.0);
@@ -86,7 +89,6 @@ public class ShooterSubsystem extends SubsystemBase {
 
   public void setWantedState(WantedState state) {
     wanted = state;
-
     if (state != WantedState.SHOOTING) {
       feedEnabled = false;
     }
@@ -102,7 +104,13 @@ public class ShooterSubsystem extends SubsystemBase {
 
   public void enableHoodManual(boolean enable) {
     hoodManualMode = enable;
-    hoodManualRot = hoodInputs.hoodPositionRot;
+    if (enable) {
+      hoodManualRot = hoodInputs.hoodPositionRot;
+    }
+  }
+
+  public boolean isHoodManualMode() {
+    return hoodManualMode;
   }
 
   public void adjustHoodManual(double deltaRot) {
@@ -113,12 +121,9 @@ public class ShooterSubsystem extends SubsystemBase {
             Math.min(Constants.ShooterConstants.HOOD_MAX_ROT, hoodManualRot));
   }
 
-  public boolean isHoodManualMode() {
-    return hoodManualMode;
-  }
-
   public void setShooterManualMode(boolean enable) {
     shooterManualMode = enable;
+    SmartDashboard.putBoolean("Shooter/ManualSpeedMode", enable);
   }
 
   public boolean isShooterManualMode() {
@@ -128,15 +133,37 @@ public class ShooterSubsystem extends SubsystemBase {
   public void setManualShooterSpeeds(double topRps, double bottomRps) {
     shooterManualTopRps = topRps;
     shooterManualBottomRps = bottomRps;
+    SmartDashboard.putNumber("Shooter/ManualTopRPS", topRps);
+    SmartDashboard.putNumber("Shooter/ManualBottomRPS", bottomRps);
+  }
+
+  public void increaseShooterSpeed() {
+    shooterRpsOffset += 1.0;
+    SmartDashboard.putNumber("Shooter/RpsOffset", shooterRpsOffset);
+  }
+
+  public void decreaseShooterSpeed() {
+    shooterRpsOffset -= 1.0;
+    SmartDashboard.putNumber("Shooter/RpsOffset", shooterRpsOffset);
+  }
+
+  public void resetShooterOffset() {
+    shooterRpsOffset = 0.0;
+    SmartDashboard.putNumber("Shooter/RpsOffset", shooterRpsOffset);
+  }
+
+  public double getShooterOffset() {
+    return shooterRpsOffset;
   }
 
   @Logged(importance = Importance.CRITICAL)
   public boolean flywheelsAtSpeed() {
     double avg = (Math.abs(targetTopRps) + Math.abs(targetBottomRps)) * 0.5;
+
     if (avg < READY_MIN_RPS) return false;
 
-    return (Math.abs(shooterInputs.topVelocityRps - targetTopRps) <= READY_TOL_RPS)
-        && (Math.abs(shooterInputs.bottomVelocityRps - targetBottomRps) <= READY_TOL_RPS);
+    return Math.abs(shooterInputs.topVelocityRps - targetTopRps) <= READY_TOL_RPS
+        && Math.abs(shooterInputs.bottomVelocityRps - targetBottomRps) <= READY_TOL_RPS;
   }
 
   @Logged(importance = Importance.CRITICAL)
@@ -148,101 +175,44 @@ public class ShooterSubsystem extends SubsystemBase {
   @NotLogged
   private TagAimData getTagAimData() {
     PhotonPipelineResult res = camera.getLatestResult();
-    if (res == null || !res.hasTargets()) return new TagAimData(-1.0, -1.0, 0.0);
 
-    List<Integer> hubCenters = new ArrayList<>();
-    List<Integer> hubIDs = new ArrayList<>();
+    if (res == null || !res.hasTargets()) {
+      return new TagAimData(-1.0, -1.0, 0.0);
+    }
 
-    boolean blueAlliance =
+    boolean blue =
         DriverStation.getAlliance().orElse(DriverStation.Alliance.Blue)
             == DriverStation.Alliance.Blue;
 
-    if (blueAlliance) {
-      hubCenters.addAll(List.of(18, 24, 26));
-      hubIDs.addAll(List.of(21, 24, 19, 20, 18, 27));
-    } else {
-      hubCenters.addAll(List.of(2, 8, 10));
-      hubIDs.addAll(List.of(2, 11, 8, 5, 9, 10));
-    }
+    List<Integer> hubCenters =
+        blue ? List.of(18, 24, 26) : List.of(2, 8, 10);
 
-    double distTotal = 0.0;
-    double forwardTotal = 0.0;
-    double lateralTotal = 0.0;
-    int tagCount = 0;
+    List<Integer> hubIds =
+        blue ? List.of(21, 24, 19, 20, 18, 27)
+             : List.of(2, 11, 8, 5, 9, 10);
 
-    var targets = res.getTargets();
+    double dist = 0.0;
+    double forward = 0.0;
+    double lateral = 0.0;
+    int count = 0;
 
-    if (targets.size() == 1) {
-      PhotonTrackedTarget t = targets.get(0);
-      if (hubIDs.contains(t.getFiducialId())) {
+    for (PhotonTrackedTarget t : res.getTargets()) {
+      if (hubIds.contains(t.getFiducialId()) || hubCenters.contains(t.getFiducialId())) {
         double x = t.getBestCameraToTarget().getX();
         double y = t.getBestCameraToTarget().getY();
 
-        distTotal += Math.hypot(x, y);
-        forwardTotal += x;
-        lateralTotal += y;
-        tagCount++;
-      }
-    } else if (targets.size() == 2) {
-      var t0 = targets.get(0);
-      var t1 = targets.get(1);
-
-      if ((t1.getFiducialId() - t0.getFiducialId())
-          == (hubCenters.contains(t0.getFiducialId()) ? 1 : -1)) {
-        for (var t : targets) {
-          double x = t.getBestCameraToTarget().getX();
-          double y = t.getBestCameraToTarget().getY();
-
-          distTotal += Math.hypot(x, y);
-          forwardTotal += x;
-          lateralTotal += y;
-          tagCount++;
-        }
-      } else {
-        for (var t : targets) {
-          if (hubCenters.contains(t.getFiducialId())) {
-            double x = t.getBestCameraToTarget().getX();
-            double y = t.getBestCameraToTarget().getY();
-
-            distTotal += Math.hypot(x, y);
-            forwardTotal += x;
-            lateralTotal += y;
-            tagCount++;
-          }
-        }
-      }
-    } else if (targets.size() == 3) {
-      for (var t : targets) {
-        if (hubCenters.contains(t.getFiducialId())) {
-          double x = t.getBestCameraToTarget().getX();
-          double y = t.getBestCameraToTarget().getY();
-
-          distTotal += Math.hypot(x, y);
-          forwardTotal += x;
-          lateralTotal += y;
-          tagCount++;
-        }
-      }
-    } else {
-      for (var t : targets) {
-        if (hubIDs.contains(t.getFiducialId())) {
-          double x = t.getBestCameraToTarget().getX();
-          double y = t.getBestCameraToTarget().getY();
-
-          distTotal += Math.hypot(x, y);
-          forwardTotal += x;
-          lateralTotal += y;
-          tagCount++;
-        }
+        dist += Math.hypot(x, y);
+        forward += x;
+        lateral += y;
+        count++;
       }
     }
 
-    if (tagCount == 0) return new TagAimData(-1.0, -1.0, 0.0);
+    if (count == 0) {
+      return new TagAimData(-1.0, -1.0, 0.0);
+    }
 
-    return new TagAimData(
-        distTotal / tagCount,
-        forwardTotal / tagCount,
-        lateralTotal / tagCount);
+    return new TagAimData(dist / count, forward / count, lateral / count);
   }
 
   @NotLogged
@@ -250,86 +220,46 @@ public class ShooterSubsystem extends SubsystemBase {
     return getTagAimData().distanceM;
   }
 
-  private double calcHoodRotFromDistance(double distM) {
-    if (distM < 0) return 0.0;
+  private double interpolate(double x, double[] xTable, double[] yTable) {
+    if (x <= xTable[0]) return yTable[0];
+    if (x >= xTable[xTable.length - 1]) return yTable[yTable.length - 1];
 
-    final double a = Constants.ShooterConstants.HOOD_QUADRATIC_A;
-    final double b = Constants.ShooterConstants.HOOD_QUADRATIC_B;
-    final double c = Constants.ShooterConstants.HOOD_QUADRATIC_C;
+    for (int i = 0; i < xTable.length - 1; i++) {
+      if (x >= xTable[i] && x <= xTable[i + 1]) {
+        double ratio = (x - xTable[i]) / (xTable[i + 1] - xTable[i]);
+        return yTable[i] + ratio * (yTable[i + 1] - yTable[i]);
+      }
+    }
 
-    double formula = a * Math.pow(distM, 2) + b * distM + c;
+    return yTable[yTable.length - 1];
+  }
+
+  private double calcMapHood(double dist) {
+    if (dist < 0.0) return hoodInputs.hoodPositionRot;
 
     return Math.max(
         Constants.ShooterConstants.HOOD_MIN_ROT,
-        Math.min(Constants.ShooterConstants.HOOD_MAX_ROT, formula));
+        Math.min(
+            Constants.ShooterConstants.HOOD_MAX_ROT,
+            interpolate(
+                dist,
+                Constants.ShooterConstants.SHOT_DISTANCE_M,
+                Constants.ShooterConstants.SHOT_HOOD_ROT)));
   }
 
-  private double calcTopRpsFromTagPosition(TagAimData aimData) {
-    if (aimData.distanceM < 0) return Constants.ShooterConstants.SHOOTER_TOP_RPS;
-
-    double distComponent =
-        Constants.ShooterConstants.SHOOTER_TOP_RPS
-            + (aimData.distanceM * Constants.ShooterConstants.TOP_RPS_PER_METER);
-
-    double lateralComponent =
-        Math.abs(aimData.lateralM) * Constants.ShooterConstants.TOP_RPS_PER_LATERAL_METER;
-
-    double forwardComponent =
-        aimData.forwardM * Constants.ShooterConstants.TOP_RPS_PER_FORWARD_METER;
-
-    double result = distComponent + lateralComponent + forwardComponent;
+  private double calcMapRps(double dist) {
+    if (dist < 0.0) {
+      return Constants.ShooterConstants.SHOOTER_TOP_RPS;
+    }
 
     return Math.max(
         Constants.ShooterConstants.SHOOTER_MIN_RPS,
-        Math.min(Constants.ShooterConstants.SHOOTER_MAX_RPS, result));
-  }
-
-  private double calcBottomRpsFromTagPosition(TagAimData aimData) {
-    if (aimData.distanceM < 0) return Constants.ShooterConstants.SHOOTER_BOTTOM_RPS;
-
-    double distComponent =
-        Constants.ShooterConstants.SHOOTER_BOTTOM_RPS
-            + (aimData.distanceM * Constants.ShooterConstants.BOTTOM_RPS_PER_METER);
-
-    double lateralComponent =
-        Math.abs(aimData.lateralM) * Constants.ShooterConstants.BOTTOM_RPS_PER_LATERAL_METER;
-
-    double forwardComponent =
-        aimData.forwardM * Constants.ShooterConstants.BOTTOM_RPS_PER_FORWARD_METER;
-
-    double result = distComponent + lateralComponent + forwardComponent;
-
-    return Math.max(
-        Constants.ShooterConstants.SHOOTER_MIN_RPS,
-        Math.min(Constants.ShooterConstants.SHOOTER_MAX_RPS, result));
-  }
-
-  private double getDashboardManualHoodTarget() {
-    double manualTarget =
-        SmartDashboard.getNumber("Hood/ManualTargetRot", hoodManualRot);
-
-    return Math.max(
-        Constants.ShooterConstants.HOOD_MIN_ROT,
-        Math.min(Constants.ShooterConstants.HOOD_MAX_ROT, manualTarget));
-  }
-
-  private double getDashboardManualTopRps() {
-    double top =
-        SmartDashboard.getNumber("Shooter/ManualTopRPS", Constants.ShooterConstants.SHOOTER_TOP_RPS);
-
-    return Math.max(
-        Constants.ShooterConstants.SHOOTER_MIN_RPS,
-        Math.min(Constants.ShooterConstants.SHOOTER_MAX_RPS, top));
-  }
-
-  private double getDashboardManualBottomRps() {
-    double bottom =
-        SmartDashboard.getNumber(
-            "Shooter/ManualBottomRPS", Constants.ShooterConstants.SHOOTER_BOTTOM_RPS);
-
-    return Math.max(
-        Constants.ShooterConstants.SHOOTER_MIN_RPS,
-        Math.min(Constants.ShooterConstants.SHOOTER_MAX_RPS, bottom));
+        Math.min(
+            Constants.ShooterConstants.SHOOTER_MAX_RPS,
+            interpolate(
+                dist,
+                Constants.ShooterConstants.SHOT_DISTANCE_M,
+                Constants.ShooterConstants.SHOT_RPS)));
   }
 
   @Override
@@ -337,75 +267,74 @@ public class ShooterSubsystem extends SubsystemBase {
     shooterIO.updateInputs(shooterInputs);
     hoodIO.updateInputs(hoodInputs);
 
-    shooterManualMode = SmartDashboard.getBoolean("Shooter/ManualSpeedMode", shooterManualMode);
-    shooterManualTopRps = getDashboardManualTopRps();
-    shooterManualBottomRps = getDashboardManualBottomRps();
+    shooterManualMode =
+        SmartDashboard.getBoolean("Shooter/ManualSpeedMode", shooterManualMode);
 
-    boolean hoodDashboardManual =
+    shooterManualTopRps =
+        SmartDashboard.getNumber(
+            "Shooter/ManualTopRPS",
+            Constants.ShooterConstants.SHOOTER_TOP_RPS);
+
+    shooterManualBottomRps =
+        SmartDashboard.getNumber(
+            "Shooter/ManualBottomRPS",
+            Constants.ShooterConstants.SHOOTER_BOTTOM_RPS);
+
+    boolean hoodManualDashboard =
         SmartDashboard.getBoolean("Hood/ManualTargetFromDashboard", false);
 
-    TagAimData aimData = getTagAimData();
-    double dist = aimData.distanceM;
+    TagAimData aim = getTagAimData();
+    double dist = aim.distanceM;
+
+    mapHoodRot = calcMapHood(dist);
+    mapRps = calcMapRps(dist);
 
     switch (wanted) {
       case IDLE -> {
         targetTopRps = 0.0;
         targetBottomRps = 0.0;
+        targetFeedRps = 0.0;
         targetHoodRot = 0.0;
-        targetFeedRps = 0.0;
         feedEnabled = false;
       }
 
-      case PREPARE_SHOT -> {
-        targetHoodRot = calcHoodRotFromDistance(dist);
+      case PREPARE_SHOT, SHOOTING -> {
+        targetHoodRot = mapHoodRot;
 
-        double top = calcTopRpsFromTagPosition(aimData);
-        double bot = calcBottomRpsFromTagPosition(aimData);
+        double top;
+        double bot;
 
         if (shooterManualMode) {
           top = shooterManualTopRps;
           bot = shooterManualBottomRps;
-        } else if (Constants.ShooterConstants.LIVE_TUNING) {
-          top = SmartDashboard.getNumber("Shooter/TopRPS", top);
-          bot = SmartDashboard.getNumber("Shooter/BottomRPS", bot);
+        } else {
+          top = mapRps;
+          bot = mapRps;
+
+          if (Constants.ShooterConstants.LIVE_TUNING) {
+            top = SmartDashboard.getNumber("Shooter/TopRPS", top);
+            bot = SmartDashboard.getNumber("Shooter/BottomRPS", bot);
+          }
         }
 
-        if (hoodDashboardManual) {
-          targetHoodRot = getDashboardManualHoodTarget();
+        targetTopRps = top + shooterRpsOffset;
+        targetBottomRps = bot + shooterRpsOffset;
+
+        if (hoodManualDashboard) {
+          targetHoodRot = SmartDashboard.getNumber("Hood/ManualTargetRot", targetHoodRot);
         }
 
-        targetTopRps = top;
-        targetBottomRps = bot;
-        targetFeedRps = 0.0;
-        feedEnabled = false;
-      }
+        if (wanted == WantedState.SHOOTING) {
+          double feed = Constants.ShooterConstants.FEEDER_RPS;
 
-      case SHOOTING -> {
-        targetHoodRot = calcHoodRotFromDistance(dist);
+          if (Constants.ShooterConstants.LIVE_TUNING) {
+            feed = SmartDashboard.getNumber("Shooter/FeederRPS", feed);
+          }
 
-        double top = calcTopRpsFromTagPosition(aimData);
-        double bot = calcBottomRpsFromTagPosition(aimData);
-        double feed = Constants.ShooterConstants.FEEDER_RPS;
-
-        if (shooterManualMode) {
-          top = shooterManualTopRps;
-          bot = shooterManualBottomRps;
-        } else if (Constants.ShooterConstants.LIVE_TUNING) {
-          top = SmartDashboard.getNumber("Shooter/TopRPS", top);
-          bot = SmartDashboard.getNumber("Shooter/BottomRPS", bot);
+          targetFeedRps = feedEnabled ? feed : 0.0;
+        } else {
+          targetFeedRps = 0.0;
         }
-
-        if (Constants.ShooterConstants.LIVE_TUNING) {
-          feed = SmartDashboard.getNumber("Shooter/FeederRPS", feed);
-        }
-
-        if (hoodDashboardManual) {
-          targetHoodRot = getDashboardManualHoodTarget();
-        }
-
-        targetTopRps = top;
-        targetBottomRps = bot;
-        targetFeedRps = feedEnabled ? feed : 0.0;
       }
     }
 
@@ -418,25 +347,20 @@ public class ShooterSubsystem extends SubsystemBase {
     hoodIO.setHoodPositionRot(hoodManualMode ? hoodManualRot : targetHoodRot);
 
     SmartDashboard.putNumber("Vision/TagDistanceM", dist);
-    SmartDashboard.putNumber("Vision/TagForwardM", aimData.forwardM);
-    SmartDashboard.putNumber("Vision/TagLateralM", aimData.lateralM);
+    SmartDashboard.putNumber("Vision/TagForwardM", aim.forwardM);
+    SmartDashboard.putNumber("Vision/TagLateralM", aim.lateralM);
 
     SmartDashboard.putNumber("Shooter/TargetTopRPS", targetTopRps);
     SmartDashboard.putNumber("Shooter/TargetBottomRPS", targetBottomRps);
-    SmartDashboard.putNumber("Shooter/ActualTopRPS", shooterInputs.topVelocityRps);
-    SmartDashboard.putNumber("Shooter/ActualBottomRPS", shooterInputs.bottomVelocityRps);
     SmartDashboard.putBoolean("Shooter/AtSpeed", flywheelsAtSpeed());
-    SmartDashboard.putBoolean("Shooter/ManualSpeedModeActive", shooterManualMode);
+    SmartDashboard.putNumber("Shooter/MapBaseRPS", mapRps);
 
     SmartDashboard.putNumber("Hood/PositionDeg", hoodInputs.hoodPositionRot * 360.0);
     SmartDashboard.putNumber("Hood/TargetDeg", targetHoodRot * 360.0);
-    SmartDashboard.putNumber("Hood/DistanceM", dist);
-    SmartDashboard.putNumber("Hood/TargetRot", targetHoodRot);
-    SmartDashboard.putNumber("Hood/ActualRot", hoodInputs.hoodPositionRot);
     SmartDashboard.putBoolean("Hood/AtTarget", hoodAtTarget());
-    SmartDashboard.putNumber("Hood/PositionRot", hoodInputs.hoodPositionRot);
+    SmartDashboard.putNumber("Hood/MapBaseRot", mapHoodRot);
     SmartDashboard.putNumber("Hood/ManualRot", hoodManualRot);
-    SmartDashboard.putNumber("Hood/ErrorRot", targetHoodRot - hoodInputs.hoodPositionRot);
+    SmartDashboard.putBoolean("Hood/ManualMode", hoodManualMode);
   }
 
   @Override
@@ -444,4 +368,6 @@ public class ShooterSubsystem extends SubsystemBase {
     shooterIO.simulationPeriodic();
     hoodIO.simulationPeriodic();
   }
-}
+
+
+} // George was here :PPPPP
