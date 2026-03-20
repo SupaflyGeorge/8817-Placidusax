@@ -48,6 +48,7 @@ public class DepotSingleSwipe {
 
     return Commands.sequence(
 
+        // Reset pose from the starting pose of the first path
         Commands.runOnce(() -> {
           Optional<Pose2d> startingPoseOpt = toZone.getStartingHolonomicPose();
           if (startingPoseOpt.isPresent()) {
@@ -65,61 +66,64 @@ public class DepotSingleSwipe {
         }),
 
         // PATH 1
-        Commands.deadline(
-            AutoBuilder.followPath(toZone),
-
-            Commands.startEnd(
+        Commands.sequence(
+            Commands.runOnce(
                 () -> intake.setWantedState(IntakeSubsystem.WantedState.INTAKE),
-                () -> intake.setWantedState(IntakeSubsystem.WantedState.IDLE),
-                intake
-            ),
+                intake),
 
-            Commands.sequence(
-                Commands.waitSeconds(0.35),
-                Commands.startEnd(
-                    () -> intakePivot.setWantedState(IntakePivotSubsystem.WantedState.DEPLOY),
-                    () -> intakePivot.setWantedState(IntakePivotSubsystem.WantedState.IDLE),
-                    intakePivot
-                )
-            )
-        ),
+            Commands.deadline(
+                AutoBuilder.followPath(toZone),
+
+                Commands.sequence(
+                    Commands.waitSeconds(0.35),
+                    Commands.startEnd(
+                        () -> intakePivot.setWantedState(IntakePivotSubsystem.WantedState.DEPLOY),
+                        () -> intakePivot.setWantedState(IntakePivotSubsystem.WantedState.IDLE),
+                        intakePivot))),
+
+            Commands.waitSeconds(1.0),
+
+            Commands.runOnce(
+                () -> intake.setWantedState(IntakeSubsystem.WantedState.IDLE),
+                intake)),
 
         // PATH 2
         Commands.deadline(
             AutoBuilder.followPath(shoot),
-
             Commands.startEnd(
                 () -> intake.setWantedState(IntakeSubsystem.WantedState.INTAKE),
                 () -> intake.setWantedState(IntakeSubsystem.WantedState.IDLE),
-                intake
-            )
-        ),
+                intake)),
 
-        // stop intake
+        // Make sure intake is off
         Commands.runOnce(
             () -> intake.setWantedState(IntakeSubsystem.WantedState.IDLE),
-            intake
-        ),
+            intake),
 
-        // shoot
+        // Shoot
         new AutoShootAlignedCommand(
             drivetrain,
             shooter,
             indexer,
             vision,
             intakePivot,
-            maxAngularRateRps
-        ).withTimeout(3.0),
+            maxAngularRateRps).withTimeout(3.0),
 
-        // drive home while prepping shooter
+        // Re-deploy pivot after shot
+        Commands.sequence(
+            Commands.waitSeconds(0.35),
+            Commands.startEnd(
+                () -> intakePivot.setWantedState(IntakePivotSubsystem.WantedState.DEPLOY),
+                () -> intakePivot.setWantedState(IntakePivotSubsystem.WantedState.IDLE),
+                intakePivot)),
+
+        // Drive home while spinning shooter up
         Commands.deadline(
             AutoBuilder.followPath(homeDepot),
             Commands.startEnd(
                 () -> shooter.setWantedState(ShooterSubsystem.WantedState.PREPARE_SHOT),
                 () -> shooter.setWantedState(ShooterSubsystem.WantedState.IDLE),
-                shooter
-            )
-        ),
+                shooter)),
 
         Commands.waitSeconds(0.35),
 
@@ -128,19 +132,15 @@ public class DepotSingleSwipe {
             Commands.startEnd(
                 () -> shooter.setWantedState(ShooterSubsystem.WantedState.PREPARE_SHOT),
                 () -> shooter.setWantedState(ShooterSubsystem.WantedState.IDLE),
-                shooter
-            )
-        ),
+                shooter)),
 
-        // final shot
+        // Final shot
         new AutoShootAlignedCommand(
             drivetrain,
             shooter,
             indexer,
             vision,
             intakePivot,
-            maxAngularRateRps
-        ).withTimeout(3.0)
-    );
+            maxAngularRateRps).withTimeout(3.0));
   }
 }

@@ -123,18 +123,6 @@ public class RobotContainer {
             )
         );
 
-        autoChooser.setDefaultOption(
-            "Depot Single Red",
-            DepotSingleSwipeRed.build(
-                drivetrain,
-                shooter,
-                indexer,
-                intake,
-                intakePivot,
-                vision,
-                MaxAngularRate
-            )
-        );
 
         ShuffleboardTab autoTab = Shuffleboard.getTab("Autonomous");
         autoTab.add(autoChooser);
