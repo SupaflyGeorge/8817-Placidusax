@@ -1,0 +1,86 @@
+{
+  "version": "2025.0",
+  "waypoints": [
+    {
+      "anchor": {
+        "x": 7.85908969210174,
+        "y": 4.305026773761713
+      },
+      "prevControl": null,
+      "nextControl": {
+        "x": 8.120584808447159,
+        "y": 4.266366059844988
+      },
+      "isLocked": false,
+      "linkedName": "Travel 1 RED"
+    },
+    {
+      "anchor": {
+        "x": 8.787176913425345,
+        "y": 0.7668820577164366
+      },
+      "prevControl": {
+        "x": 7.6624853066813365,
+        "y": 1.136704514282504
+      },
+      "nextControl": {
+        "x": 9.843762741051778,
+        "y": 0.41945422594224807
+      },
+      "isLocked": false,
+      "linkedName": null
+    },
+    {
+      "anchor": {
+        "x": 14.443111668757842,
+        "y": 1.3170702634880798
+      },
+      "prevControl": {
+        "x": 13.966482028473031,
+        "y": 0.86295024670951
+      },
+      "nextControl": {
+        "x": 15.130312453064297,
+        "y": 1.9718168535512046
+      },
+      "isLocked": false,
+      "linkedName": null
+    },
+    {
+      "anchor": {
+        "x": 14.553149309912172,
+        "y": 3.9579736511919696
+      },
+      "prevControl": {
+        "x": 14.343449306369811,
+        "y": 3.2950959676540634
+      },
+      "nextControl": null,
+      "isLocked": false,
+      "linkedName": "Shoot Red"
+    }
+  ],
+  "rotationTargets": [],
+  "constraintZones": [],
+  "pointTowardsZones": [],
+  "eventMarkers": [],
+  "globalConstraints": {
+    "maxVelocity": 3.0,
+    "maxAcceleration": 3.0,
+    "maxAngularVelocity": 540.0,
+    "maxAngularAcceleration": 720.0,
+    "nominalVoltage": 12.0,
+    "unlimited": false
+  },
+  "goalEndState": {
+    "velocity": 0,
+    "rotation": -12.528807709151405
+  },
+  "reversed": false,
+  "folder": "Depot Red",
+  "idealStartingState": {
+    "velocity": 0,
+    "rotation": 74.61821357516035
+  },
+  "useDefaultConstraints": true
+}

@@ -4,6 +4,8 @@
   "holonomicMode": true,
   "pathFolders": [
     "Depot Single",
+    "Hub",
+    "Depot Red",
     "Outpost Double",
     "Outpost Single"
   ],

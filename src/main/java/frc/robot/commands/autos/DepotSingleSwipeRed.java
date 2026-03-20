@@ -1,14 +1,8 @@
 package frc.robot.commands.autos;
 
-import java.util.Optional;
-
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.path.PathPlannerPath;
-import com.pathplanner.lib.util.FlippingUtil;
 
-import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import frc.robot.commands.AutoShootAlignedCommand;
@@ -19,8 +13,8 @@ import frc.robot.subsystems.intakepivot.IntakePivotSubsystem;
 import frc.robot.subsystems.shooter.ShooterSubsystem;
 import frc.robot.subsystems.vision.Vision;
 
-public class DepotSingleSwipe {
-  private DepotSingleSwipe() {}
+public class DepotSingleSwipeRed {
+  private DepotSingleSwipeRed() {}
 
   public static Command build(
       CommandSwerveDrivetrain drivetrain,
@@ -31,16 +25,16 @@ public class DepotSingleSwipe {
       Vision vision,
       double maxAngularRateRps) {
 
-    PathPlannerPath toZone;
-    PathPlannerPath shoot;
-    PathPlannerPath homeDepot;
-    PathPlannerPath back;
+    PathPlannerPath tooZone;
+    PathPlannerPath shoott;
+    PathPlannerPath homeDepott;
+    PathPlannerPath backt;
 
     try {
-      toZone = PathPlannerPath.fromPathFile("Travel 1 Dep");
-      shoot = PathPlannerPath.fromPathFile("Shoot Dep");
-      homeDepot = PathPlannerPath.fromPathFile("HOME DEPOT");
-      back = PathPlannerPath.fromPathFile("Back");
+      tooZone = PathPlannerPath.fromPathFile("Dep 1 Red");
+      shoott = PathPlannerPath.fromPathFile("Dep 2 Red");
+      homeDepott = PathPlannerPath.fromPathFile("Dep 3 Red");
+      backt = PathPlannerPath.fromPathFile("Dep 4 Red");
     } catch (Exception e) {
       e.printStackTrace();
       return Commands.none();
@@ -48,25 +42,13 @@ public class DepotSingleSwipe {
 
     return Commands.sequence(
 
-        Commands.runOnce(() -> {
-          Optional<Pose2d> startingPoseOpt = toZone.getStartingHolonomicPose();
-          if (startingPoseOpt.isPresent()) {
-            Pose2d startingPose = startingPoseOpt.get();
-
-            boolean isRed = DriverStation.getAlliance().isPresent()
-                && DriverStation.getAlliance().get() == Alliance.Red;
-
-            if (isRed) {
-              startingPose = FlippingUtil.flipFieldPose(startingPose);
-            }
-
-            drivetrain.resetPose(startingPose);
-          }
-        }),
+        /*Commands.runOnce(
+            () -> tooZone.getStartingHolonomicPose().ifPresent(drivetrain::resetPose)
+        ),*/
 
         // PATH 1
         Commands.deadline(
-            AutoBuilder.followPath(toZone),
+            AutoBuilder.followPath(tooZone),
 
             Commands.startEnd(
                 () -> intake.setWantedState(IntakeSubsystem.WantedState.INTAKE),
@@ -86,7 +68,7 @@ public class DepotSingleSwipe {
 
         // PATH 2
         Commands.deadline(
-            AutoBuilder.followPath(shoot),
+            AutoBuilder.followPath(shoott),
 
             Commands.startEnd(
                 () -> intake.setWantedState(IntakeSubsystem.WantedState.INTAKE),
@@ -111,9 +93,9 @@ public class DepotSingleSwipe {
             maxAngularRateRps
         ).withTimeout(3.0),
 
-        // drive home while prepping shooter
+        // drive home while only prepping shooter, NOT running another drivetrain command
         Commands.deadline(
-            AutoBuilder.followPath(homeDepot),
+            AutoBuilder.followPath(homeDepott),
             Commands.startEnd(
                 () -> shooter.setWantedState(ShooterSubsystem.WantedState.PREPARE_SHOT),
                 () -> shooter.setWantedState(ShooterSubsystem.WantedState.IDLE),
@@ -121,10 +103,12 @@ public class DepotSingleSwipe {
             )
         ),
 
-        Commands.waitSeconds(0.35),
+        Commands.sequence(
+                Commands.waitSeconds(0.35)
+        ),
 
         Commands.deadline(
-            AutoBuilder.followPath(back),
+            AutoBuilder.followPath(backt),
             Commands.startEnd(
                 () -> shooter.setWantedState(ShooterSubsystem.WantedState.PREPARE_SHOT),
                 () -> shooter.setWantedState(ShooterSubsystem.WantedState.IDLE),
@@ -132,7 +116,9 @@ public class DepotSingleSwipe {
             )
         ),
 
-        // final shot
+
+
+        // then do the aligned shot after the path is complete
         new AutoShootAlignedCommand(
             drivetrain,
             shooter,

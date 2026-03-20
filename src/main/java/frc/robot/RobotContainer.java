@@ -27,6 +27,7 @@ import frc.robot.subsystems.shooter.ShooterSubsystem;
 import frc.robot.subsystems.vision.Vision;
 import frc.robot.commands.ShootOnMoveCommand;
 import frc.robot.commands.autos.DepotSingleSwipe;
+import frc.robot.commands.autos.DepotSingleSwipeRed;
 import frc.robot.commands.autos.DriveStraight;
 import frc.robot.commands.autos.Hub;
 import frc.robot.commands.autos.OutpostDoubleSwipe;
@@ -83,7 +84,7 @@ public class RobotContainer {
             )
         );
 
-        autoChooser.setDefaultOption(
+        autoChooser.addOption(
             "Outpost Double Swipe",
             OutpostDoubleSwipe.build(
                 drivetrain,
@@ -96,7 +97,7 @@ public class RobotContainer {
             )
         );
 
-        autoChooser.setDefaultOption(
+        autoChooser.addOption(
             "Depot Single",
             DepotSingleSwipe.build(
                 drivetrain,
@@ -109,9 +110,22 @@ public class RobotContainer {
             )
         );
 
-        autoChooser.setDefaultOption(
+        autoChooser.addOption(
             "Hub",
             Hub.build(
+                drivetrain,
+                shooter,
+                indexer,
+                intake,
+                intakePivot,
+                vision,
+                MaxAngularRate
+            )
+        );
+
+        autoChooser.setDefaultOption(
+            "Depot Single Red",
+            DepotSingleSwipeRed.build(
                 drivetrain,
                 shooter,
                 indexer,
