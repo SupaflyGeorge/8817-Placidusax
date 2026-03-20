@@ -153,7 +153,7 @@ public class Vision extends SubsystemBase {
 
     if (blueAlliance) {
       hubCenters.addAll(List.of(18, 21, 26));
-      hubIDs.addAll(List.of(21, 24, 19, 20, 18, 27));
+      hubIDs.addAll(List.of(21, 24, 25, 26, 18, 27));
     } else {
       hubCenters.addAll(List.of(2, 5, 10));
       hubIDs.addAll(List.of(2, 11, 8, 5, 9, 10));
@@ -175,10 +175,13 @@ public class Vision extends SubsystemBase {
       var t1 = targets.get(1);
 
       if ((t1.getFiducialId() - t0.getFiducialId())
-          == (hubCenters.contains(t0.getFiducialId()) ? 1 : -1)) {
+          == (hubCenters.contains(t0.getFiducialId()) ? 1 : -1)
+          || !(hubCenters.contains(t0.getFiducialId() || hubCenters.contains(t1.getFiducialId())) )) {
         for (var t : targets) {
-          yawTotal += Units.degreesToRadians(t.getYaw());
-          tagCount++;
+          if (hubIDs.contains(t.getFiducialId())){
+            yawTotal += Units.degreesToRadians(t.getYaw());
+            tagCount++;
+          }
         }
       } else {
         for (var t : targets) {
