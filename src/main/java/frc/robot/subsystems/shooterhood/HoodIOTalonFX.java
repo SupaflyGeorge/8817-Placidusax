@@ -76,7 +76,7 @@ public class HoodIOTalonFX implements HoodIO {
     if (!seeded) {
       // CANcoder absolute returns rotations (0..1).
      
-      System.out.println("motorPos" + hoodEncoder.getPosition());
+      //System.out.println("motorSystemPos" + hoodEncoder.getPosition());
       hoodEncoder.setPosition(0);
       hoodMotor.setPosition(0);
       seeded = true;

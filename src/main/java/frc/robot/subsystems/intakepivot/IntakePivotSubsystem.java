@@ -21,8 +21,8 @@ public class IntakePivotSubsystem extends SubsystemBase {
 
   private WantedState wanted = WantedState.IDLE;
 
-  private static final double DEPLOY_PCT = +0.800;
-  private static final double STOW_PCT = -0.800;
+  private static final double DEPLOY_PCT = +0.200;
+  private static final double STOW_PCT = -0.200;
 
   public void setWantedState(WantedState state) {
     wanted = state;
@@ -44,10 +44,13 @@ public class IntakePivotSubsystem extends SubsystemBase {
     io.stop();
   }
 
+  // MAX is more negative on your robot
   private boolean atOrPastMax() {
-    return inputs.pivotPositionRot >= Constants.IntakePivotConstants.MAX_ROT;
+    return inputs.pivotPositionRot <= Constants.IntakePivotConstants.MAX_ROT;
   }
 
+  // MIN is more positive on your robot
+  
   private boolean atOrPastMin() {
     return inputs.pivotPositionRot <= Constants.IntakePivotConstants.MIN_ROT;
   }
@@ -62,20 +65,27 @@ public class IntakePivotSubsystem extends SubsystemBase {
       case IDLE -> out = 0.0;
 
       case DEPLOY -> {
-        if (atOrPastMax()) out = 0.0;
-        else out = DEPLOY_PCT;
+        if (atOrPastMax()) {
+          out = 0.0;
+        } else {
+          out = DEPLOY_PCT;
+        }
       }
 
       case STOW -> {
-        if (atOrPastMin()) out = 0.0;
-        else out = STOW_PCT;
+        if (atOrPastMin()) {
+          out = 0.0;
+        } else {
+          out = STOW_PCT;
+        }
       }
     }
 
-    out = MathUtil.clamp(out, -0.2, 0.2);
-
-    if (out == 0.0) io.stop();
-    else io.setPercent(out);
+    if (out == 0.0) {
+      io.stop();
+    } else {
+      io.setPercent(out);
+    }
 
     SmartDashboard.putNumber("IntakePivot/PosRot", inputs.pivotPositionRot);
     SmartDashboard.putNumber("IntakePivot/AbsRot", inputs.pivotAbsPositionRot);

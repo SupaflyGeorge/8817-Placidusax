@@ -41,17 +41,14 @@ public class OutpostDoubleSwipe {
     }
 
     return Commands.sequence(
+        Commands.runOnce(() ->
+            collectSwipe1.getStartingHolonomicPose().ifPresent(drivetrain::resetPose)
+        ),
 
         // PATH 1
         Commands.deadline(
             AutoBuilder.followPath(collectSwipe1),
-
-            Commands.startEnd(
-                () -> intake.setWantedState(IntakeSubsystem.WantedState.INTAKE),
-                () -> intake.setWantedState(IntakeSubsystem.WantedState.IDLE),
-                intake
-            ),
-
+            
             Commands.sequence(
                 Commands.waitSeconds(0.35),
                 Commands.startEnd(
@@ -59,7 +56,14 @@ public class OutpostDoubleSwipe {
                     () -> intakePivot.setWantedState(IntakePivotSubsystem.WantedState.IDLE),
                     intakePivot
                 )
+            ),
+
+            Commands.startEnd(
+                () -> intake.setWantedState(IntakeSubsystem.WantedState.INTAKE),
+                () -> intake.setWantedState(IntakeSubsystem.WantedState.IDLE),
+                intake
             )
+
         ),
 
         AutoBuilder.followPath(travelSwipe1),
@@ -72,7 +76,6 @@ public class OutpostDoubleSwipe {
             intakePivot,
             maxAngularRateRps
         ).withTimeout(2.5),
-        
 
         // PATH 2
         Commands.deadline(

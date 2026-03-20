@@ -23,7 +23,8 @@ public class ShooterSubsystem extends SubsystemBase {
   public enum WantedState {
     IDLE,
     PREPARE_SHOT,
-    SHOOTING
+    SHOOTING,
+    MANUAL_SHOT
   }
 
   private static class TagAimData {
@@ -58,12 +59,10 @@ public class ShooterSubsystem extends SubsystemBase {
 
   private boolean feedEnabled = false;
 
-  private boolean hoodManualMode = false;
-  private double hoodManualRot = 0.0;
-
-  private boolean shooterManualMode = false;
-  private double shooterManualTopRps = 0.0;
-  private double shooterManualBottomRps = 0.0;
+  // Manual fallback values only, never default logic
+  private double manualHoodRot = 0.0;
+  private double manualTopRps = Constants.ShooterConstants.SHOOTER_TOP_RPS;
+  private double manualBottomRps = Constants.ShooterConstants.SHOOTER_BOTTOM_RPS;
 
   private double shooterRpsOffset = 0.0;
 
@@ -71,25 +70,19 @@ public class ShooterSubsystem extends SubsystemBase {
   private static final double READY_MIN_RPS = Constants.ShooterConstants.READY_MIN_RPS;
 
   public ShooterSubsystem() {
-
-    SmartDashboard.putBoolean("Shooter/ManualSpeedMode", false);
-    SmartDashboard.putNumber("Shooter/ManualTopRPS", Constants.ShooterConstants.SHOOTER_TOP_RPS);
-    SmartDashboard.putNumber("Shooter/ManualBottomRPS", Constants.ShooterConstants.SHOOTER_BOTTOM_RPS);
+    SmartDashboard.putNumber("Shooter/ManualTopRPS", manualTopRps);
+    SmartDashboard.putNumber("Shooter/ManualBottomRPS", manualBottomRps);
     SmartDashboard.putNumber("Shooter/RpsOffset", 0.0);
-
-    SmartDashboard.putBoolean("Hood/ManualTargetFromDashboard", false);
-    SmartDashboard.putNumber("Hood/ManualTargetRot", 0.0);
+    SmartDashboard.putNumber("Hood/ManualTargetRot", manualHoodRot);
 
     if (Constants.ShooterConstants.LIVE_TUNING) {
-      SmartDashboard.putNumber("Shooter/TopRPS", Constants.ShooterConstants.SHOOTER_TOP_RPS);
-      SmartDashboard.putNumber("Shooter/BottomRPS", Constants.ShooterConstants.SHOOTER_BOTTOM_RPS);
       SmartDashboard.putNumber("Shooter/FeederRPS", Constants.ShooterConstants.FEEDER_RPS);
     }
   }
 
   public void setWantedState(WantedState state) {
     wanted = state;
-    if (state != WantedState.SHOOTING) {
+    if (state != WantedState.SHOOTING && state != WantedState.MANUAL_SHOT) {
       feedEnabled = false;
     }
   }
@@ -102,39 +95,53 @@ public class ShooterSubsystem extends SubsystemBase {
     feedEnabled = enable;
   }
 
-  public void enableHoodManual(boolean enable) {
-    hoodManualMode = enable;
-    if (enable) {
-      hoodManualRot = hoodInputs.hoodPositionRot;
-    }
-  }
-
-  public boolean isHoodManualMode() {
-    return hoodManualMode;
-  }
-
-  public void adjustHoodManual(double deltaRot) {
-    hoodManualRot += deltaRot;
-    hoodManualRot =
+  public void syncManualToCurrentTargets() {
+    manualHoodRot =
         Math.max(
             Constants.ShooterConstants.HOOD_MIN_ROT,
-            Math.min(Constants.ShooterConstants.HOOD_MAX_ROT, hoodManualRot));
+            Math.min(Constants.ShooterConstants.HOOD_MAX_ROT, targetHoodRot));
+
+    manualTopRps =
+        Math.max(
+            Constants.ShooterConstants.SHOOTER_MIN_RPS,
+            Math.min(Constants.ShooterConstants.SHOOTER_MAX_RPS, targetTopRps));
+
+    manualBottomRps =
+        Math.max(
+            Constants.ShooterConstants.SHOOTER_MIN_RPS,
+            Math.min(Constants.ShooterConstants.SHOOTER_MAX_RPS, targetBottomRps));
+
+    SmartDashboard.putNumber("Hood/ManualTargetRot", manualHoodRot);
+    SmartDashboard.putNumber("Shooter/ManualTopRPS", manualTopRps);
+    SmartDashboard.putNumber("Shooter/ManualBottomRPS", manualBottomRps);
   }
 
-  public void setShooterManualMode(boolean enable) {
-    shooterManualMode = enable;
-    SmartDashboard.putBoolean("Shooter/ManualSpeedMode", enable);
+  public void adjustManualHood(double deltaRot) {
+    manualHoodRot += deltaRot;
+    manualHoodRot =
+        Math.max(
+            Constants.ShooterConstants.HOOD_MIN_ROT,
+            Math.min(Constants.ShooterConstants.HOOD_MAX_ROT, manualHoodRot));
+
+    SmartDashboard.putNumber("Hood/ManualTargetRot", manualHoodRot);
   }
 
-  public boolean isShooterManualMode() {
-    return shooterManualMode;
-  }
+  public void adjustManualShooterRps(double deltaRps) {
+    manualTopRps += deltaRps;
+    manualBottomRps += deltaRps;
 
-  public void setManualShooterSpeeds(double topRps, double bottomRps) {
-    shooterManualTopRps = topRps;
-    shooterManualBottomRps = bottomRps;
-    SmartDashboard.putNumber("Shooter/ManualTopRPS", topRps);
-    SmartDashboard.putNumber("Shooter/ManualBottomRPS", bottomRps);
+    manualTopRps =
+        Math.max(
+            Constants.ShooterConstants.SHOOTER_MIN_RPS,
+            Math.min(Constants.ShooterConstants.SHOOTER_MAX_RPS, manualTopRps));
+
+    manualBottomRps =
+        Math.max(
+            Constants.ShooterConstants.SHOOTER_MIN_RPS,
+            Math.min(Constants.ShooterConstants.SHOOTER_MAX_RPS, manualBottomRps));
+
+    SmartDashboard.putNumber("Shooter/ManualTopRPS", manualTopRps);
+    SmartDashboard.putNumber("Shooter/ManualBottomRPS", manualBottomRps);
   }
 
   public void increaseShooterSpeed() {
@@ -159,7 +166,6 @@ public class ShooterSubsystem extends SubsystemBase {
   @Logged(importance = Importance.CRITICAL)
   public boolean flywheelsAtSpeed() {
     double avg = (Math.abs(targetTopRps) + Math.abs(targetBottomRps)) * 0.5;
-
     if (avg < READY_MIN_RPS) return false;
 
     return Math.abs(shooterInputs.topVelocityRps - targetTopRps) <= READY_TOL_RPS
@@ -184,12 +190,9 @@ public class ShooterSubsystem extends SubsystemBase {
         DriverStation.getAlliance().orElse(DriverStation.Alliance.Blue)
             == DriverStation.Alliance.Blue;
 
-    List<Integer> hubCenters =
-        blue ? List.of(18, 24, 26) : List.of(2, 8, 10);
-
+    List<Integer> hubCenters = blue ? List.of(18, 21, 26) : List.of(2, 5, 10);
     List<Integer> hubIds =
-        blue ? List.of(21, 24, 19, 20, 18, 27)
-             : List.of(2, 11, 8, 5, 9, 10);
+        blue ? List.of(21, 24, 19, 20, 18, 27) : List.of(2, 11, 8, 5, 9, 10);
 
     double dist = 0.0;
     double forward = 0.0;
@@ -267,22 +270,6 @@ public class ShooterSubsystem extends SubsystemBase {
     shooterIO.updateInputs(shooterInputs);
     hoodIO.updateInputs(hoodInputs);
 
-    shooterManualMode =
-        SmartDashboard.getBoolean("Shooter/ManualSpeedMode", shooterManualMode);
-
-    shooterManualTopRps =
-        SmartDashboard.getNumber(
-            "Shooter/ManualTopRPS",
-            Constants.ShooterConstants.SHOOTER_TOP_RPS);
-
-    shooterManualBottomRps =
-        SmartDashboard.getNumber(
-            "Shooter/ManualBottomRPS",
-            Constants.ShooterConstants.SHOOTER_BOTTOM_RPS);
-
-    boolean hoodManualDashboard =
-        SmartDashboard.getBoolean("Hood/ManualTargetFromDashboard", false);
-
     TagAimData aim = getTagAimData();
     double dist = aim.distanceM;
 
@@ -299,42 +286,33 @@ public class ShooterSubsystem extends SubsystemBase {
       }
 
       case PREPARE_SHOT, SHOOTING -> {
+        // Always interpolation/table by default
         targetHoodRot = mapHoodRot;
-
-        double top;
-        double bot;
-
-        if (shooterManualMode) {
-          top = shooterManualTopRps;
-          bot = shooterManualBottomRps;
-        } else {
-          top = mapRps;
-          bot = mapRps;
-
-          if (Constants.ShooterConstants.LIVE_TUNING) {
-            top = SmartDashboard.getNumber("Shooter/TopRPS", top);
-            bot = SmartDashboard.getNumber("Shooter/BottomRPS", bot);
-          }
-        }
-
-        targetTopRps = top + shooterRpsOffset;
-        targetBottomRps = bot + shooterRpsOffset;
-
-        if (hoodManualDashboard) {
-          targetHoodRot = SmartDashboard.getNumber("Hood/ManualTargetRot", targetHoodRot);
-        }
+        targetTopRps = mapRps + shooterRpsOffset;
+        targetBottomRps = mapRps + shooterRpsOffset;
 
         if (wanted == WantedState.SHOOTING) {
           double feed = Constants.ShooterConstants.FEEDER_RPS;
-
           if (Constants.ShooterConstants.LIVE_TUNING) {
             feed = SmartDashboard.getNumber("Shooter/FeederRPS", feed);
           }
-
           targetFeedRps = feedEnabled ? feed : 0.0;
         } else {
           targetFeedRps = 0.0;
         }
+      }
+
+      case MANUAL_SHOT -> {
+        // Manual fallback only when explicitly commanded
+        targetHoodRot = manualHoodRot;
+        targetTopRps = manualTopRps + shooterRpsOffset;
+        targetBottomRps = manualBottomRps + shooterRpsOffset;
+
+        double feed = Constants.ShooterConstants.FEEDER_RPS;
+        if (Constants.ShooterConstants.LIVE_TUNING) {
+          feed = SmartDashboard.getNumber("Shooter/FeederRPS", feed);
+        }
+        targetFeedRps = feedEnabled ? feed : 0.0;
       }
     }
 
@@ -344,7 +322,7 @@ public class ShooterSubsystem extends SubsystemBase {
       shooterIO.setFlywheelVelocityRps(targetTopRps, targetBottomRps, targetFeedRps);
     }
 
-    hoodIO.setHoodPositionRot(hoodManualMode ? hoodManualRot : targetHoodRot);
+    hoodIO.setHoodPositionRot(targetHoodRot);
 
     SmartDashboard.putNumber("Vision/TagDistanceM", dist);
     SmartDashboard.putNumber("Vision/TagForwardM", aim.forwardM);
@@ -354,13 +332,15 @@ public class ShooterSubsystem extends SubsystemBase {
     SmartDashboard.putNumber("Shooter/TargetBottomRPS", targetBottomRps);
     SmartDashboard.putBoolean("Shooter/AtSpeed", flywheelsAtSpeed());
     SmartDashboard.putNumber("Shooter/MapBaseRPS", mapRps);
+    SmartDashboard.putBoolean("Shooter/ManualShotActive", wanted == WantedState.MANUAL_SHOT);
+    SmartDashboard.putNumber("Shooter/ManualTopRPS", manualTopRps);
+    SmartDashboard.putNumber("Shooter/ManualBottomRPS", manualBottomRps);
 
     SmartDashboard.putNumber("Hood/PositionDeg", hoodInputs.hoodPositionRot * 360.0);
     SmartDashboard.putNumber("Hood/TargetDeg", targetHoodRot * 360.0);
     SmartDashboard.putBoolean("Hood/AtTarget", hoodAtTarget());
     SmartDashboard.putNumber("Hood/MapBaseRot", mapHoodRot);
-    SmartDashboard.putNumber("Hood/ManualRot", hoodManualRot);
-    SmartDashboard.putBoolean("Hood/ManualMode", hoodManualMode);
+    SmartDashboard.putNumber("Hood/ManualRot", manualHoodRot);
   }
 
   @Override
@@ -368,6 +348,4 @@ public class ShooterSubsystem extends SubsystemBase {
     shooterIO.simulationPeriodic();
     hoodIO.simulationPeriodic();
   }
-
-
-} // George was here :PPPPP
+}

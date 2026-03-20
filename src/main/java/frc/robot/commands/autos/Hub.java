@@ -13,8 +13,8 @@ import frc.robot.subsystems.intakepivot.IntakePivotSubsystem;
 import frc.robot.subsystems.shooter.ShooterSubsystem;
 import frc.robot.subsystems.vision.Vision;
 
-public class OutpostSingleSwipe {
-  private OutpostSingleSwipe() {}
+public class Hub {
+  private Hub() {}
 
   public static Command build(
       CommandSwerveDrivetrain drivetrain,
@@ -30,9 +30,8 @@ public class OutpostSingleSwipe {
     PathPlannerPath travel;
 
     try {
-      toZone = PathPlannerPath.fromPathFile("To Zone");
-      collect = PathPlannerPath.fromPathFile("Collect");
-      travel = PathPlannerPath.fromPathFile("Travel");
+      toZone = PathPlannerPath.fromPathFile("MID");
+      
     } catch (Exception e) {
       e.printStackTrace();
       return Commands.none();
@@ -62,34 +61,6 @@ public class OutpostSingleSwipe {
                     intakePivot
                 )
             )
-        ),
-
-        // PATH 2
-        Commands.deadline(
-            AutoBuilder.followPath(collect),
-
-            Commands.startEnd(
-                () -> intake.setWantedState(IntakeSubsystem.WantedState.INTAKE),
-                () -> intake.setWantedState(IntakeSubsystem.WantedState.IDLE),
-                intake
-            )
-        ),
-
-        // PATH 3
-        Commands.deadline(
-            AutoBuilder.followPath(travel),
-
-            Commands.startEnd(
-                () -> intake.setWantedState(IntakeSubsystem.WantedState.INTAKE),
-                () -> intake.setWantedState(IntakeSubsystem.WantedState.IDLE),
-                intake
-            )
-        ),
-
-        // stop intake
-        Commands.runOnce(
-            () -> intake.setWantedState(IntakeSubsystem.WantedState.IDLE),
-            intake
         ),
 
         // shoot

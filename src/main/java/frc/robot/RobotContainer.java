@@ -11,11 +11,9 @@ import org.littletonrobotics.junction.Logger;
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 
-//import edu.wpi.first.networktables.GenericEntry;
 import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
-//import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
@@ -28,12 +26,12 @@ import frc.robot.subsystems.intakepivot.IntakePivotSubsystem;
 import frc.robot.subsystems.shooter.ShooterSubsystem;
 import frc.robot.subsystems.vision.Vision;
 import frc.robot.commands.ShootOnMoveCommand;
+import frc.robot.commands.autos.DepotSingleSwipe;
+import frc.robot.commands.autos.DriveStraight;
+import frc.robot.commands.autos.Hub;
 import frc.robot.commands.autos.OutpostDoubleSwipe;
 import frc.robot.commands.autos.OutpostSingleSwipe;
-//import frc.robot.commands.AutoStateCommand;
-//import frc.robot.commands.AutoShootAlignedCommand;
 import frc.robot.generated.TunerConstants;
-//import com.pathplanner.lib.auto.NamedCommands;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 
 public class RobotContainer {
@@ -45,43 +43,10 @@ public class RobotContainer {
     public final IndexerSubsystem indexer = new IndexerSubsystem();
 
     private final SendableChooser<Command> autoChooser = new SendableChooser<>();
-    
 
-    private void configureAutoChooser() {
-
-    autoChooser.addOption(
-        "Outpost Single Swipe",
-        OutpostSingleSwipe.build(
-            drivetrain,
-            shooter,
-            indexer,
-            intake,
-            intakePivot,
-            vision,
-            MaxAngularRate
-        )
-    );
-
-    autoChooser.setDefaultOption(
-        "Outpost Double Swipe",
-        OutpostDoubleSwipe.build(
-            drivetrain,
-            shooter,
-            indexer,
-            intake,
-            intakePivot,
-            vision,
-            MaxAngularRate
-        )
-    );
-
-      ShuffleboardTab autoTab = Shuffleboard.getTab("Autonomous");
-      autoTab.add(autoChooser);
-}
     private double MaxSpeed = 1.0 * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond);
     private double MaxAngularRate = RotationsPerSecond.of(0.75).in(RadiansPerSecond);
 
-    /* Setting up bindings for necessary control of the swerve drive platform */
     private final SwerveRequest.FieldCentric drive = new SwerveRequest.FieldCentric()
             .withDeadband(MaxSpeed * 0.1).withRotationalDeadband(MaxAngularRate * 0.1)
             .withDriveRequestType(DriveRequestType.OpenLoopVoltage);
@@ -99,6 +64,68 @@ public class RobotContainer {
         configureBindings();
     }
 
+    private void configureAutoChooser() {
+        autoChooser.addOption(
+            "Drive Straight",
+            DriveStraight.build(drivetrain)
+        );
+
+        autoChooser.addOption(
+            "Outpost Single Swipe",
+            OutpostSingleSwipe.build(
+                drivetrain,
+                shooter,
+                indexer,
+                intake,
+                intakePivot,
+                vision,
+                MaxAngularRate
+            )
+        );
+
+        autoChooser.setDefaultOption(
+            "Outpost Double Swipe",
+            OutpostDoubleSwipe.build(
+                drivetrain,
+                shooter,
+                indexer,
+                intake,
+                intakePivot,
+                vision,
+                MaxAngularRate
+            )
+        );
+
+        autoChooser.setDefaultOption(
+            "Depot Single",
+            DepotSingleSwipe.build(
+                drivetrain,
+                shooter,
+                indexer,
+                intake,
+                intakePivot,
+                vision,
+                MaxAngularRate
+            )
+        );
+
+        autoChooser.setDefaultOption(
+            "Hub",
+            Hub.build(
+                drivetrain,
+                shooter,
+                indexer,
+                intake,
+                intakePivot,
+                vision,
+                MaxAngularRate
+            )
+        );
+
+        ShuffleboardTab autoTab = Shuffleboard.getTab("Autonomous");
+        autoTab.add(autoChooser);
+    }
+
     private void configureBindings() {
         drivetrain.setDefaultCommand(
             drivetrain.applyRequest(() ->
@@ -113,127 +140,141 @@ public class RobotContainer {
             drivetrain.applyRequest(() -> idle).ignoringDisable(true)
         );
 
-        // Reset the field-centric heading on right stick press.
         driver.rightStick().onTrue(drivetrain.runOnce(drivetrain::seedFieldCentric));
-
         drivetrain.registerTelemetry(logger::telemeterize);
 
-        // Driver Controls
-        /*driver.y().whileTrue(
-            drivetrain.applyRequest(() -> {
-              double vx = -driver.getLeftY() * MaxSpeed;
-              double vy = -driver.getLeftX() * MaxSpeed;
-
-              double omegaCmd = vision.calcAimOmegaRadPerSec();
-              omegaCmd = Math.max(-MaxAngularRate, Math.min(MaxAngularRate, omegaCmd));
-
-              return drive
-                  .withVelocityX(vx)
-                  .withVelocityY(vy)
-                  .withRotationalRate(omegaCmd);
-            })
-        );*/
-
-        // Hold = prepare shot (spin + aim hood), release = idle (hood returns to 0)
+        // Driver controls
         driver.rightBumper()
-          .whileTrue(Commands.runOnce(() -> shooter.setWantedState(ShooterSubsystem.WantedState.PREPARE_SHOT)))
-          .whileFalse(Commands.runOnce(() -> shooter.setWantedState(ShooterSubsystem.WantedState.IDLE)));
+            .onTrue(new InstantCommand(() ->
+                shooter.setWantedState(ShooterSubsystem.WantedState.PREPARE_SHOT)))
+            .onFalse(new InstantCommand(() ->
+                shooter.setWantedState(ShooterSubsystem.WantedState.IDLE)));
 
-        // Shoot On The Move
         driver.rightTrigger().whileTrue(
-          new ShootOnMoveCommand(
-            drivetrain,
-            shooter,
-            vision,
-            indexer,
-            intakePivot,
-            () -> driver.getLeftY(),
-            () -> driver.getLeftX(),
-            () -> -driver.getRightX(),
-            MaxSpeed,
-            MaxAngularRate
-          )
+            new ShootOnMoveCommand(
+                drivetrain,
+                shooter,
+                vision,
+                indexer,
+                intakePivot,
+                () -> driver.getLeftY(),
+                () -> driver.getLeftX(),
+                () -> -driver.getRightX(),
+                MaxSpeed,
+                MaxAngularRate
+            )
         );
 
-        // Nudge hood UP
-        driver.povUp()
-         .whileTrue(Commands.run(() -> shooter.adjustHoodManual(+0.01)));
-
-        // Nudge hood DOWN
-        driver.povDown()
-          .whileTrue(Commands.run(() -> shooter.adjustHoodManual(-0.01)));
-
-        // Intake roller: hold left trigger to intake, release = idle
         driver.leftTrigger()
-          .whileTrue(Commands.runOnce(() -> intake.setWantedState(IntakeSubsystem.WantedState.INTAKE)))
-          .whileFalse(Commands.runOnce(() -> intake.setWantedState(IntakeSubsystem.WantedState.IDLE)));
+            .whileTrue(Commands.runOnce(() -> intake.setWantedState(IntakeSubsystem.WantedState.INTAKE)))
+            .whileFalse(Commands.runOnce(() -> intake.setWantedState(IntakeSubsystem.WantedState.IDLE)));
 
         driver.leftBumper()
-          .whileTrue(Commands.runOnce(() -> intake.setWantedState(IntakeSubsystem.WantedState.SPIT)))
-          .whileFalse(Commands.runOnce(() -> intake.setWantedState(IntakeSubsystem.WantedState.IDLE)));
+            .whileTrue(Commands.runOnce(() -> intake.setWantedState(IntakeSubsystem.WantedState.SPIT)))
+            .whileFalse(Commands.runOnce(() -> intake.setWantedState(IntakeSubsystem.WantedState.IDLE)));
 
-        // Pivot: A = deploy, B = stow
         driver.a()
-        .whileTrue(Commands.runOnce(() -> intakePivot.setWantedState(IntakePivotSubsystem.WantedState.DEPLOY)))
-        .whileFalse(Commands.runOnce(() -> intakePivot.setWantedState(IntakePivotSubsystem.WantedState.IDLE)));
+            .whileTrue(Commands.runOnce(() -> intakePivot.setWantedState(IntakePivotSubsystem.WantedState.DEPLOY)))
+            .whileFalse(Commands.runOnce(() -> intakePivot.setWantedState(IntakePivotSubsystem.WantedState.IDLE)));
 
         driver.b()
-        .whileTrue(Commands.runOnce(() -> intakePivot.setWantedState(IntakePivotSubsystem.WantedState.STOW)))
-        .whileFalse(Commands.runOnce(() -> intakePivot.setWantedState(IntakePivotSubsystem.WantedState.IDLE)));
+            .whileTrue(Commands.runOnce(() -> intakePivot.setWantedState(IntakePivotSubsystem.WantedState.STOW)))
+            .whileFalse(Commands.runOnce(() -> intakePivot.setWantedState(IntakePivotSubsystem.WantedState.IDLE)));
 
         driver.x()
-          .whileTrue(Commands.runOnce(() -> indexer.setWantedState(IndexerSubsystem.WantedState.INDEX)))
-          .whileFalse(Commands.runOnce(() -> indexer.setWantedState(IndexerSubsystem.WantedState.IDLE)));
+            .whileTrue(Commands.runOnce(() -> indexer.setWantedState(IndexerSubsystem.WantedState.INDEX)))
+            .whileFalse(Commands.runOnce(() -> indexer.setWantedState(IndexerSubsystem.WantedState.IDLE)));
 
-        driver.y().onTrue(
-          new InstantCommand(() -> shooter.increaseShooterSpeed()));
+        driver.y().onTrue(new InstantCommand(() -> shooter.increaseShooterSpeed()));
+        driver.povLeft().onTrue(new InstantCommand(() -> shooter.decreaseShooterSpeed()));
+        driver.povRight().onTrue(new InstantCommand(() -> shooter.resetShooterOffset()));
 
-        driver.povLeft().onTrue(
-          new InstantCommand(() -> shooter.decreaseShooterSpeed()));
-
-        driver.povRight().onTrue(
-          new InstantCommand(() -> shooter.resetShooterOffset()));
-
-        //  Chris
+        // Operator controls
         operator.y()
-        .whileTrue(Commands.runOnce(() -> intakePivot.setWantedState(IntakePivotSubsystem.WantedState.DEPLOY)))
-        .whileFalse(Commands.runOnce(() -> intakePivot.setWantedState(IntakePivotSubsystem.WantedState.IDLE)));
+            .whileTrue(Commands.runOnce(() -> intakePivot.setWantedState(IntakePivotSubsystem.WantedState.DEPLOY)))
+            .whileFalse(Commands.runOnce(() -> intakePivot.setWantedState(IntakePivotSubsystem.WantedState.IDLE)));
 
         operator.a()
-        .whileTrue(Commands.runOnce(() -> intakePivot.setWantedState(IntakePivotSubsystem.WantedState.STOW)))
-        .whileFalse(Commands.runOnce(() -> intakePivot.setWantedState(IntakePivotSubsystem.WantedState.IDLE)));
+            .whileTrue(Commands.runOnce(() -> intakePivot.setWantedState(IntakePivotSubsystem.WantedState.STOW)))
+            .whileFalse(Commands.runOnce(() -> intakePivot.setWantedState(IntakePivotSubsystem.WantedState.IDLE)));
 
         operator.x()
-        .whileTrue(Commands.runOnce(() -> indexer.setWantedState(IndexerSubsystem.WantedState.INDEX)))
-        .whileFalse(Commands.runOnce(() -> indexer.setWantedState(IndexerSubsystem.WantedState.IDLE)));
-
-        operator.y()
-        .whileTrue(Commands.runOnce(() -> shooter.setWantedState(ShooterSubsystem.WantedState.PREPARE_SHOT)))
-        .whileFalse(Commands.runOnce(() -> shooter.setWantedState(ShooterSubsystem.WantedState.IDLE)));
+            .whileTrue(Commands.runOnce(() -> indexer.setWantedState(IndexerSubsystem.WantedState.INDEX)))
+            .whileFalse(Commands.runOnce(() -> indexer.setWantedState(IndexerSubsystem.WantedState.IDLE)));
 
         operator.leftTrigger()
-        .whileTrue(Commands.runOnce(() -> intake.setWantedState(IntakeSubsystem.WantedState.SPIT)))
-        .whileFalse(Commands.runOnce(() -> intake.setWantedState(IntakeSubsystem.WantedState.IDLE)));
+            .whileTrue(Commands.runOnce(() -> intake.setWantedState(IntakeSubsystem.WantedState.SPIT)))
+            .whileFalse(Commands.runOnce(() -> intake.setWantedState(IntakeSubsystem.WantedState.IDLE)));
 
         operator.rightTrigger()
-          .whileTrue(Commands.runOnce(() -> intake.setWantedState(IntakeSubsystem.WantedState.INTAKE)))
-          .whileFalse(Commands.runOnce(() -> intake.setWantedState(IntakeSubsystem.WantedState.IDLE)));
+            .whileTrue(Commands.runOnce(() -> intake.setWantedState(IntakeSubsystem.WantedState.INTAKE)))
+            .whileFalse(Commands.runOnce(() -> intake.setWantedState(IntakeSubsystem.WantedState.IDLE)));
 
-        operator.povUp()
-        .whileTrue(Commands.run(() -> shooter.adjustHoodManual(+0.01)));
+        // Copy current table shot into manual fallback values
+        operator.back().onTrue(
+            new InstantCommand(() -> shooter.syncManualToCurrentTargets())
+        );
 
-        operator.povDown()
-        .whileTrue(Commands.run(() -> shooter.adjustHoodManual(-0.01)));
+        // Manual fallback tuning
+        operator.povUp().whileTrue(
+            Commands.run(() -> shooter.adjustManualHood(+0.01))
+        );
+        operator.povDown().whileTrue(
+            Commands.run(() -> shooter.adjustManualHood(-0.01))
+        );
+        operator.povRight().onTrue(
+            new InstantCommand(() -> shooter.adjustManualShooterRps(+1.0))
+        );
+        operator.povLeft().onTrue(
+            new InstantCommand(() -> shooter.adjustManualShooterRps(-1.0))
+        );
 
-  
-          }
+        // RB = normal table shot
+        operator.rightBumper().onTrue(
+            new InstantCommand(() -> {
+                shooter.setFeedEnabled(false);
+                shooter.setWantedState(ShooterSubsystem.WantedState.PREPARE_SHOT);
+            })
+        );
+
+        operator.rightBumper().onFalse(
+            new InstantCommand(() -> {
+                if (operator.leftBumper().getAsBoolean()) {
+                    shooter.setFeedEnabled(true);
+                    shooter.setWantedState(ShooterSubsystem.WantedState.MANUAL_SHOT);
+                } else {
+                    shooter.setFeedEnabled(false);
+                    shooter.setWantedState(ShooterSubsystem.WantedState.IDLE);
+                }
+            })
+        );
+
+        // LB = manual fallback shot
+        operator.leftBumper().onTrue(
+            new InstantCommand(() -> {
+                shooter.setFeedEnabled(true);
+                shooter.setWantedState(ShooterSubsystem.WantedState.MANUAL_SHOT);
+            })
+        );
+
+        operator.leftBumper().onFalse(
+            new InstantCommand(() -> {
+                shooter.setFeedEnabled(false);
+                if (operator.rightBumper().getAsBoolean()) {
+                    shooter.setWantedState(ShooterSubsystem.WantedState.PREPARE_SHOT);
+                } else {
+                    shooter.setWantedState(ShooterSubsystem.WantedState.IDLE);
+                }
+            })
+        );
+    }
 
     public void periodic() {
-      Logger.recordOutput("AutoDebug/Test", true);
-      vision.updateVisionPose(drivetrain);
+        Logger.recordOutput("AutoDebug/Test", true);
+        vision.updateVisionPose(drivetrain);
     }
 
     public Command getAutonomousCommand() {
-  return autoChooser.getSelected();
-}
+        return autoChooser.getSelected();
+    }
 }

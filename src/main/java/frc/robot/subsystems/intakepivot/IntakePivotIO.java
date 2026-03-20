@@ -12,9 +12,15 @@ public interface IntakePivotIO {
     public double motorAmps;
     public double motorTempC;
 
+    // Real continuous control position from TalonFX
     public double pivotPositionRot;
+
+    // Real continuous velocity from TalonFX
     public double pivotVelocityRps;
+
+    // Absolute CANcoder position for debug only (this will wrap)
     public double pivotAbsPositionRot;
+
     public boolean homed;
   }
 

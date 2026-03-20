@@ -3,57 +3,41 @@
   "waypoints": [
     {
       "anchor": {
-        "x": 4.297831669044222,
-        "y": 0.6903566333808839
+        "x": 4.440156918687589,
+        "y": 0.6774179743223976
       },
       "prevControl": null,
       "nextControl": {
-        "x": 5.384168037821139,
-        "y": 0.7092060271761309
+        "x": 5.44015691868759,
+        "y": 0.6774179743223976
       },
       "isLocked": false,
       "linkedName": null
     },
     {
       "anchor": {
-        "x": 6.859686162624821,
-        "y": 0.6903566333808839
+        "x": 7.377232524964336,
+        "y": 0.9103138373751789
       },
       "prevControl": {
-        "x": 6.553594899186076,
-        "y": 0.5601852102315033
+        "x": 6.953037624821683,
+        "y": 0.3951934736091308
       },
       "nextControl": {
-        "x": 7.343072295178892,
-        "y": 0.8959262406226494
+        "x": 7.80142742510699,
+        "y": 1.4254342011412278
       },
       "isLocked": false,
       "linkedName": null
     },
     {
       "anchor": {
-        "x": 7.6360057061340925,
-        "y": 1.8807132667617692
+        "x": 8.722853067047076,
+        "y": 3.019315263908702
       },
       "prevControl": {
-        "x": 7.4896971720715815,
-        "y": 1.387955779765431
-      },
-      "nextControl": {
-        "x": 7.707164733869468,
-        "y": 2.1203721759885203
-      },
-      "isLocked": false,
-      "linkedName": null
-    },
-    {
-      "anchor": {
-        "x": 7.752,
-        "y": 3.0322539229671905
-      },
-      "prevControl": {
-        "x": 7.718206294255369,
-        "y": 2.490926144782998
+        "x": 8.735791726105566,
+        "y": 2.2300570613409425
       },
       "nextControl": null,
       "isLocked": false,
@@ -61,21 +45,7 @@
     }
   ],
   "rotationTargets": [],
-  "constraintZones": [
-    {
-      "name": "Constraints Zone",
-      "minWaypointRelativePos": 1.7132659131469432,
-      "maxWaypointRelativePos": 2.7626412849494355,
-      "constraints": {
-        "maxVelocity": 3.0,
-        "maxAcceleration": 3.0,
-        "maxAngularVelocity": 540.0,
-        "maxAngularAcceleration": 720.0,
-        "nominalVoltage": 12.0,
-        "unlimited": false
-      }
-    }
-  ],
+  "constraintZones": [],
   "pointTowardsZones": [],
   "eventMarkers": [],
   "globalConstraints": {
@@ -88,7 +58,7 @@
   },
   "goalEndState": {
     "velocity": 0,
-    "rotation": 89.5172552826284
+    "rotation": 92.74382088140067
   },
   "reversed": false,
   "folder": "Outpost Double",

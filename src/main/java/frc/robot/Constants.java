@@ -93,8 +93,8 @@ public final class Constants {
     public static final double READY_MIN_RPS = 10.0;
 
     // Current limits
-    public static final double SUPPLY_LIMIT_A = 60.0;
-    public static final double FEEDER_SUPPLY_LIMIT_A = 60.0;
+    public static final double SUPPLY_LIMIT_A = 40.0;
+    public static final double FEEDER_SUPPLY_LIMIT_A = 20.0;
 
     // Inverts
     public static final boolean TOP_INVERTED = false;
@@ -128,7 +128,7 @@ public final class Constants {
     };
 
     public static final double[] SHOT_RPS = {
-      27.5, 28.5, 29.5, 30.5, 32.0, 32.0, 33.25, 34.0, 34.5, 36.25
+      26.0, 27.0, 29.0, 29.75, 31.0, 31.5, 32.75, 33.0, 34, 35
     };
   }
 
@@ -136,9 +136,9 @@ public final class Constants {
     private IntakeConstants() {}
 
     public static final int ROLLER_ID = 13;
-    public static final double INTAKE_PERCENT = 0.60;
+    public static final double INTAKE_PERCENT = -0.7;
     public static final boolean ROLLER_INVERTED = false;
-    public static final double ROLLER_SUPPLY_LIMIT_A = 60.0;
+    public static final double ROLLER_SUPPLY_LIMIT_A = 20.0;
   }
 
   public static final class IndexerConstants {
@@ -147,7 +147,7 @@ public final class Constants {
     public static final int BELTER_ID = 15;
     public static final double BELT_PERCENT = 0.8;
     public static final boolean BELT_INVERTED = true;
-    public static final double BELT_SUPPLY_LIMIT_A = 60.0;
+    public static final double BELT_SUPPLY_LIMIT_A = 20.0;
   }
 
   public static final class IntakePivotConstants {
@@ -159,7 +159,7 @@ public final class Constants {
     public static final double PIVOT_GEAR_RATIO = 36.36 / 1.0;
 
     public static final double MIN_ROT = 0.05;
-    public static final double MAX_ROT = 0.55;
+    public static final double MAX_ROT = -0.45;
 
     public static final double kP = 60.0;
     public static final double kI = 0.0;
@@ -167,7 +167,7 @@ public final class Constants {
     public static final double kV = 0.0;
 
     public static final boolean PIVOT_INVERTED = true;
-    public static final double PIVOT_SUPPLY_LIMIT_A = 60.0;
+    public static final double PIVOT_SUPPLY_LIMIT_A = 40.0;
     public static final double READY_TOL_ROT = 0.01;
     public static final double CANCODER_OFFSET_ROT = 0.0;
   }
