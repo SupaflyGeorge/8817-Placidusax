@@ -190,9 +190,8 @@ public class ShooterSubsystem extends SubsystemBase {
         DriverStation.getAlliance().orElse(DriverStation.Alliance.Blue)
             == DriverStation.Alliance.Blue;
 
-    List<Integer> hubCenters = blue ? List.of(18, 21, 26) : List.of(2, 5, 10);
     List<Integer> hubIds =
-        blue ? List.of(21, 24, 19, 20, 18, 27) : List.of(2, 11, 8, 5, 9, 10);
+        blue ? List.of(21, 24, 25, 26, 18, 27) : List.of(2, 11, 8, 5, 9, 10);
 
     double dist = 0.0;
     double forward = 0.0;
@@ -200,7 +199,7 @@ public class ShooterSubsystem extends SubsystemBase {
     int count = 0;
 
     for (PhotonTrackedTarget t : res.getTargets()) {
-      if (hubIds.contains(t.getFiducialId()) || hubCenters.contains(t.getFiducialId())) {
+      if (hubIds.contains(t.getFiducialId())) {
         double x = t.getBestCameraToTarget().getX();
         double y = t.getBestCameraToTarget().getY();
 
