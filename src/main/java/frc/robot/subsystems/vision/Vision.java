@@ -176,7 +176,7 @@ public class Vision extends SubsystemBase {
 
       if ((t1.getFiducialId() - t0.getFiducialId())
           == (hubCenters.contains(t0.getFiducialId()) ? 1 : -1)
-          || !(hubCenters.contains(t0.getFiducialId() || hubCenters.contains(t1.getFiducialId())) )) {
+          || !(hubCenters.contains(t0.getFiducialId()) || hubCenters.contains(t1.getFiducialId())) ) {
         for (var t : targets) {
           if (hubIDs.contains(t.getFiducialId())){
             yawTotal += Units.degreesToRadians(t.getYaw());
