@@ -3,48 +3,57 @@
   "waypoints": [
     {
       "anchor": {
-        "x": 8.722853067047076,
-        "y": 3.019315263908702
+        "x": 3.76778313253012,
+        "y": 0.9879457917261072
       },
       "prevControl": null,
       "nextControl": {
-        "x": 8.295834453916315,
-        "y": 2.4466198998389093
+        "x": 4.4104532633879865,
+        "y": 0.9271511930086584
       },
       "isLocked": false,
-      "linkedName": "Swipe 1"
+      "linkedName": "Traveled Swipe 1"
     },
     {
       "anchor": {
-        "x": 7.299600570613409,
-        "y": 0.9491298145506415
+        "x": 6.980530120481928,
+        "y": 1.1391566265060238
       },
       "prevControl": {
-        "x": 7.85239200101617,
-        "y": 1.20744280139842
+        "x": 5.397481569862143,
+        "y": 0.7431640387150662
       },
       "nextControl": {
-        "x": 6.524683066679787,
-        "y": 0.5870199047499868
+        "x": 7.8037827596822975,
+        "y": 1.3450896301874684
       },
       "isLocked": false,
       "linkedName": null
     },
     {
       "anchor": {
-        "x": 3.76778313253012,
-        "y": 0.9879457917261072
+        "x": 7.614337349397591,
+        "y": 4.045927710843373
       },
       "prevControl": {
-        "x": 4.65643892545597,
-        "y": 0.9876641131653625
+        "x": 7.3968125735283525,
+        "y": 3.217238422948631
       },
       "nextControl": null,
       "isLocked": false,
-      "linkedName": "Traveled Swipe 1"
+      "linkedName": "Half"
     }
   ],
-  "rotationTargets": [],
+  "rotationTargets": [
+    {
+      "waypointRelativePos": 0.583804143126182,
+      "rotationDegrees": -90.0
+    },
+    {
+      "waypointRelativePos": 1.1774011299435017,
+      "rotationDegrees": 90.0
+    }
+  ],
   "constraintZones": [],
   "pointTowardsZones": [],
   "eventMarkers": [],
@@ -58,13 +67,13 @@
   },
   "goalEndState": {
     "velocity": 0,
-    "rotation": -91.78991060824607
+    "rotation": 93.46822925891719
   },
   "reversed": false,
-  "folder": "Outpost Double",
+  "folder": "Outpost Single",
   "idealStartingState": {
     "velocity": 0,
-    "rotation": 92.74382088140067
+    "rotation": -91.78991060824607
   },
   "useDefaultConstraints": true
 }

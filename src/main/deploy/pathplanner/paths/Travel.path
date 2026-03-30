@@ -3,54 +3,59 @@
   "waypoints": [
     {
       "anchor": {
-        "x": 8.696975748930099,
-        "y": 4.041469329529244
+        "x": 8.980301204819277,
+        "y": 4.100566265060241
       },
       "prevControl": null,
       "nextControl": {
-        "x": 8.627790783298368,
-        "y": 3.5773953705362236
+        "x": 8.897323152126635,
+        "y": 3.5789879177761748
       },
       "isLocked": false,
       "linkedName": "Zone Done"
     },
     {
       "anchor": {
-        "x": 6.911440798858774,
+        "x": 7.723614457831324,
         "y": 0.9879457917261072
       },
       "prevControl": {
-        "x": 7.806011568360635,
-        "y": 1.5984037718857098
+        "x": 9.432226532740383,
+        "y": 0.925330658085676
       },
       "nextControl": {
-        "x": 5.9467669898894355,
-        "y": 0.3296492711901009
+        "x": 6.281156626506024,
+        "y": 1.0408072289156618
       },
       "isLocked": false,
       "linkedName": null
     },
     {
       "anchor": {
-        "x": 2.4734807417974314,
-        "y": 1.1949643366619125
+        "x": 3.76778313253012,
+        "y": 0.9879457917261072
       },
       "prevControl": {
-        "x": 3.0364206628946584,
-        "y": 1.1676102048622736
+        "x": 6.663626506024096,
+        "y": 0.8331807228915671
       },
       "nextControl": null,
       "isLocked": false,
       "linkedName": "Traveled Swipe 1"
     }
   ],
-  "rotationTargets": [],
+  "rotationTargets": [
+    {
+      "waypointRelativePos": 1.1141242937853146,
+      "rotationDegrees": -90.0
+    }
+  ],
   "constraintZones": [],
   "pointTowardsZones": [],
   "eventMarkers": [],
   "globalConstraints": {
-    "maxVelocity": 3.0,
-    "maxAcceleration": 3.0,
+    "maxVelocity": 4.0,
+    "maxAcceleration": 4.0,
     "maxAngularVelocity": 540.0,
     "maxAngularAcceleration": 720.0,
     "nominalVoltage": 12.0,
@@ -58,7 +63,7 @@
   },
   "goalEndState": {
     "velocity": 0,
-    "rotation": -118.88658176691058
+    "rotation": -91.78991060824607
   },
   "reversed": false,
   "folder": "Outpost Single",

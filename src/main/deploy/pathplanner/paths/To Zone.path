@@ -16,41 +16,64 @@
     },
     {
       "anchor": {
-        "x": 7.183152639087017,
-        "y": 0.8844365192582018
+        "x": 7.363,
+        "y": 0.6386019971469341
       },
       "prevControl": {
-        "x": 6.686834645692516,
-        "y": 0.5697371702527931
+        "x": 6.789979311117504,
+        "y": 0.769041718643868
       },
       "nextControl": {
-        "x": 7.802715567286189,
-        "y": 1.277281535491951
+        "x": 9.100506024096385,
+        "y": 0.24308433734939738
       },
       "isLocked": false,
       "linkedName": null
     },
     {
       "anchor": {
-        "x": 8.632282453637659,
-        "y": 4.300242510699002
+        "x": 8.652469879518073,
+        "y": 4.330048192771085
       },
       "prevControl": {
-        "x": 8.40273520308514,
-        "y": 3.2426223996431682
+        "x": 8.477626506024098,
+        "y": 2.002445783132531
       },
       "nextControl": null,
       "isLocked": false,
       "linkedName": "Zoneed"
     }
   ],
-  "rotationTargets": [],
-  "constraintZones": [],
+  "rotationTargets": [
+    {
+      "waypointRelativePos": 1.1924670433144877,
+      "rotationDegrees": 90.0
+    },
+    {
+      "waypointRelativePos": 2.0,
+      "rotationDegrees": 90.0
+    }
+  ],
+  "constraintZones": [
+    {
+      "name": "Constraints Zone",
+      "minWaypointRelativePos": 1.018584070796466,
+      "maxWaypointRelativePos": 2.0,
+      "constraints": {
+        "maxVelocity": 1.5,
+        "maxAcceleration": 2.0,
+        "maxAngularVelocity": 540.0,
+        "maxAngularAcceleration": 720.0,
+        "nominalVoltage": 12.0,
+        "unlimited": false
+      }
+    }
+  ],
   "pointTowardsZones": [],
   "eventMarkers": [],
   "globalConstraints": {
-    "maxVelocity": 3.0,
-    "maxAcceleration": 3.0,
+    "maxVelocity": 4.0,
+    "maxAcceleration": 4.0,
     "maxAngularVelocity": 540.0,
     "maxAngularAcceleration": 720.0,
     "nominalVoltage": 12.0,
@@ -58,7 +81,7 @@
   },
   "goalEndState": {
     "velocity": 0,
-    "rotation": 87.42664053682319
+    "rotation": 90.0
   },
   "reversed": false,
   "folder": "Outpost Single",

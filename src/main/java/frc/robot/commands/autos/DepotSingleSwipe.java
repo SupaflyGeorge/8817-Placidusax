@@ -22,6 +22,13 @@ import frc.robot.subsystems.vision.Vision;
 public class DepotSingleSwipe {
   private DepotSingleSwipe() {}
 
+  private static Command holdPivotDeployed(IntakePivotSubsystem intakePivot) {
+    return Commands.startEnd(
+        () -> intakePivot.setWantedState(IntakePivotSubsystem.WantedState.DEPLOY),
+        () -> intakePivot.setWantedState(IntakePivotSubsystem.WantedState.IDLE),
+        intakePivot);
+  }
+
   public static Command build(
       CommandSwerveDrivetrain drivetrain,
       ShooterSubsystem shooter,
@@ -48,7 +55,6 @@ public class DepotSingleSwipe {
 
     return Commands.sequence(
 
-        // Reset pose from the starting pose of the first path
         Commands.runOnce(() -> {
           Optional<Pose2d> startingPoseOpt = toZone.getStartingHolonomicPose();
           if (startingPoseOpt.isPresent()) {
@@ -65,42 +71,38 @@ public class DepotSingleSwipe {
           }
         }),
 
-        // PATH 1
-        Commands.sequence(
-            Commands.runOnce(
-                () -> intake.setWantedState(IntakeSubsystem.WantedState.INTAKE),
-                intake),
-
-            Commands.deadline(
-                AutoBuilder.followPath(toZone),
+        Commands.deadline(
+            Commands.sequence(
 
                 Commands.sequence(
+                    Commands.runOnce(
+                        () -> intake.setWantedState(IntakeSubsystem.WantedState.INTAKE),
+                        intake),
+
+                    Commands.deadline(
+                        AutoBuilder.followPath(toZone),
+                        Commands.sequence(
+                            Commands.waitSeconds(0.35))),
+
                     Commands.waitSeconds(0.35),
+
+                    Commands.runOnce(
+                        () -> intake.setWantedState(IntakeSubsystem.WantedState.IDLE),
+                        intake)),
+
+                Commands.deadline(
+                    AutoBuilder.followPath(shoot),
                     Commands.startEnd(
-                        () -> intakePivot.setWantedState(IntakePivotSubsystem.WantedState.DEPLOY),
-                        () -> intakePivot.setWantedState(IntakePivotSubsystem.WantedState.IDLE),
-                        intakePivot))),
+                        () -> intake.setWantedState(IntakeSubsystem.WantedState.INTAKE),
+                        () -> intake.setWantedState(IntakeSubsystem.WantedState.IDLE),
+                        intake)),
 
-            Commands.waitSeconds(1.0),
+                Commands.runOnce(
+                    () -> intake.setWantedState(IntakeSubsystem.WantedState.IDLE),
+                    intake)),
 
-            Commands.runOnce(
-                () -> intake.setWantedState(IntakeSubsystem.WantedState.IDLE),
-                intake)),
+            holdPivotDeployed(intakePivot)),
 
-        // PATH 2
-        Commands.deadline(
-            AutoBuilder.followPath(shoot),
-            Commands.startEnd(
-                () -> intake.setWantedState(IntakeSubsystem.WantedState.INTAKE),
-                () -> intake.setWantedState(IntakeSubsystem.WantedState.IDLE),
-                intake)),
-
-        // Make sure intake is off
-        Commands.runOnce(
-            () -> intake.setWantedState(IntakeSubsystem.WantedState.IDLE),
-            intake),
-
-        // Shoot
         new AutoShootAlignedCommand(
             drivetrain,
             shooter,
@@ -109,38 +111,43 @@ public class DepotSingleSwipe {
             intakePivot,
             maxAngularRateRps).withTimeout(3.0),
 
-        // Re-deploy pivot after shot
-        Commands.sequence(
-            Commands.waitSeconds(0.35),
-            Commands.startEnd(
-                () -> intakePivot.setWantedState(IntakePivotSubsystem.WantedState.DEPLOY),
-                () -> intakePivot.setWantedState(IntakePivotSubsystem.WantedState.IDLE),
-                intakePivot)),
-
-        // Drive home while spinning shooter up
         Commands.deadline(
-            AutoBuilder.followPath(homeDepot),
-            Commands.startEnd(
-                () -> shooter.setWantedState(ShooterSubsystem.WantedState.PREPARE_SHOT),
-                () -> shooter.setWantedState(ShooterSubsystem.WantedState.IDLE),
-                shooter)),
+            Commands.sequence(
 
-        Commands.waitSeconds(0.35),
+                Commands.waitSeconds(0.35),
 
-        Commands.deadline(
-            AutoBuilder.followPath(back),
-            Commands.startEnd(
-                () -> shooter.setWantedState(ShooterSubsystem.WantedState.PREPARE_SHOT),
-                () -> shooter.setWantedState(ShooterSubsystem.WantedState.IDLE),
-                shooter)),
+                Commands.deadline(
+                    AutoBuilder.followPath(homeDepot),
+                    Commands.startEnd(
+                        () -> shooter.setWantedState(ShooterSubsystem.WantedState.PREPARE_SHOT),
+                        () -> shooter.setWantedState(ShooterSubsystem.WantedState.IDLE),
+                        shooter),
+                    Commands.startEnd(
+                        () -> intake.setWantedState(IntakeSubsystem.WantedState.INTAKE),
+                        () -> intake.setWantedState(IntakeSubsystem.WantedState.IDLE),
+                        intake)),
 
-        // Final shot
+                Commands.waitSeconds(0.35),
+
+                Commands.deadline(
+                    AutoBuilder.followPath(back),
+                    Commands.startEnd(
+                        () -> shooter.setWantedState(ShooterSubsystem.WantedState.PREPARE_SHOT),
+                        () -> shooter.setWantedState(ShooterSubsystem.WantedState.IDLE),
+                        shooter),
+                    Commands.startEnd(
+                        () -> intake.setWantedState(IntakeSubsystem.WantedState.INTAKE),
+                        () -> intake.setWantedState(IntakeSubsystem.WantedState.IDLE),
+                        intake))),
+
+            holdPivotDeployed(intakePivot)),
+
         new AutoShootAlignedCommand(
             drivetrain,
             shooter,
             indexer,
             vision,
             intakePivot,
-            maxAngularRateRps).withTimeout(3.0));
+            maxAngularRateRps).withTimeout(10.0));
   }
 }

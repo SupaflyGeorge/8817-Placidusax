@@ -32,12 +32,12 @@
     },
     {
       "anchor": {
-        "x": 2.4734807417974314,
-        "y": 1.1949643366619125
+        "x": 3.76778313253012,
+        "y": 0.9879457917261072
       },
       "prevControl": {
-        "x": 3.2251194070718934,
-        "y": 1.290643470816217
+        "x": 4.519421797804582,
+        "y": 1.0836249258804123
       },
       "nextControl": null,
       "isLocked": false,
@@ -54,8 +54,8 @@
   "pointTowardsZones": [],
   "eventMarkers": [],
   "globalConstraints": {
-    "maxVelocity": 3.0,
-    "maxAcceleration": 3.0,
+    "maxVelocity": 4.0,
+    "maxAcceleration": 4.0,
     "maxAngularVelocity": 540.0,
     "maxAngularAcceleration": 720.0,
     "nominalVoltage": 12.0,
@@ -63,7 +63,7 @@
   },
   "goalEndState": {
     "velocity": 0,
-    "rotation": -118.88658176691058
+    "rotation": -91.78991060824607
   },
   "reversed": false,
   "folder": "Outpost Double",

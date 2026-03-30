@@ -27,7 +27,7 @@ public class ShooterSubsystem extends SubsystemBase {
     MANUAL_SHOT
   }
 
-  private static class TagAimData {
+  public static class TagAimData {
     public final double distanceM;
     public final double forwardM;
     public final double lateralM;
@@ -36,6 +36,10 @@ public class ShooterSubsystem extends SubsystemBase {
       distanceM = d;
       forwardM = f;
       lateralM = l;
+    }
+
+    public boolean isValid() {
+      return distanceM > 0.0;
     }
   }
 
@@ -59,12 +63,12 @@ public class ShooterSubsystem extends SubsystemBase {
 
   private boolean feedEnabled = false;
 
-  // Manual fallback values only, never default logic
   private double manualHoodRot = 0.0;
   private double manualTopRps = Constants.ShooterConstants.SHOOTER_TOP_RPS;
   private double manualBottomRps = Constants.ShooterConstants.SHOOTER_BOTTOM_RPS;
 
   private double shooterRpsOffset = 0.0;
+  private double shotDistanceOverrideM = -1.0;
 
   private static final double READY_TOL_RPS = Constants.ShooterConstants.READY_TOL_RPS;
   private static final double READY_MIN_RPS = Constants.ShooterConstants.READY_MIN_RPS;
@@ -93,6 +97,18 @@ public class ShooterSubsystem extends SubsystemBase {
 
   public void setFeedEnabled(boolean enable) {
     feedEnabled = enable;
+  }
+
+  public void setShotDistanceOverrideMeters(double distanceM) {
+    shotDistanceOverrideM = distanceM;
+  }
+
+  public void clearShotDistanceOverride() {
+    shotDistanceOverrideM = -1.0;
+  }
+
+  public boolean hasShotDistanceOverride() {
+    return shotDistanceOverrideM > 0.0;
   }
 
   public void syncManualToCurrentTargets() {
@@ -179,7 +195,7 @@ public class ShooterSubsystem extends SubsystemBase {
   }
 
   @NotLogged
-  private TagAimData getTagAimData() {
+  public TagAimData getHubTagAimData() {
     PhotonPipelineResult res = camera.getLatestResult();
 
     if (res == null || !res.hasTargets()) {
@@ -218,8 +234,23 @@ public class ShooterSubsystem extends SubsystemBase {
   }
 
   @NotLogged
+  public boolean hasHubTarget() {
+    return getHubTagAimData().isValid();
+  }
+
+  @NotLogged
   public double getDistanceToTagMeters() {
-    return getTagAimData().distanceM;
+    return getHubTagAimData().distanceM;
+  }
+
+  @NotLogged
+  public double getForwardToTagMeters() {
+    return getHubTagAimData().forwardM;
+  }
+
+  @NotLogged
+  public double getLateralToTagMeters() {
+    return getHubTagAimData().lateralM;
   }
 
   private double interpolate(double x, double[] xTable, double[] yTable) {
@@ -236,7 +267,7 @@ public class ShooterSubsystem extends SubsystemBase {
     return yTable[yTable.length - 1];
   }
 
-  private double calcMapHood(double dist) {
+  public double calcMapHoodForDistance(double dist) {
     if (dist < 0.0) return hoodInputs.hoodPositionRot;
 
     return Math.max(
@@ -249,7 +280,7 @@ public class ShooterSubsystem extends SubsystemBase {
                 Constants.ShooterConstants.SHOT_HOOD_ROT)));
   }
 
-  private double calcMapRps(double dist) {
+  public double calcMapRpsForDistance(double dist) {
     if (dist < 0.0) {
       return Constants.ShooterConstants.SHOOTER_TOP_RPS;
     }
@@ -269,11 +300,12 @@ public class ShooterSubsystem extends SubsystemBase {
     shooterIO.updateInputs(shooterInputs);
     hoodIO.updateInputs(hoodInputs);
 
-    TagAimData aim = getTagAimData();
-    double dist = aim.distanceM;
+    TagAimData aim = getHubTagAimData();
+    double rawDist = aim.distanceM;
+    double shotDist = shotDistanceOverrideM > 0.0 ? shotDistanceOverrideM : rawDist;
 
-    mapHoodRot = calcMapHood(dist);
-    mapRps = calcMapRps(dist);
+    mapHoodRot = calcMapHoodForDistance(shotDist);
+    mapRps = calcMapRpsForDistance(shotDist);
 
     switch (wanted) {
       case IDLE -> {
@@ -285,7 +317,6 @@ public class ShooterSubsystem extends SubsystemBase {
       }
 
       case PREPARE_SHOT, SHOOTING -> {
-        // Always interpolation/table by default
         targetHoodRot = mapHoodRot;
         targetTopRps = mapRps + shooterRpsOffset;
         targetBottomRps = mapRps + shooterRpsOffset;
@@ -302,7 +333,6 @@ public class ShooterSubsystem extends SubsystemBase {
       }
 
       case MANUAL_SHOT -> {
-        // Manual fallback only when explicitly commanded
         targetHoodRot = manualHoodRot;
         targetTopRps = manualTopRps + shooterRpsOffset;
         targetBottomRps = manualBottomRps + shooterRpsOffset;
@@ -323,9 +353,11 @@ public class ShooterSubsystem extends SubsystemBase {
 
     hoodIO.setHoodPositionRot(targetHoodRot);
 
-    SmartDashboard.putNumber("Vision/TagDistanceM", dist);
+    SmartDashboard.putNumber("Vision/TagDistanceM", rawDist);
     SmartDashboard.putNumber("Vision/TagForwardM", aim.forwardM);
     SmartDashboard.putNumber("Vision/TagLateralM", aim.lateralM);
+    SmartDashboard.putNumber("Shooter/ShotDistanceUsedM", shotDist);
+    SmartDashboard.putBoolean("Shooter/UsingDistanceOverride", shotDistanceOverrideM > 0.0);
 
     SmartDashboard.putNumber("Shooter/TargetTopRPS", targetTopRps);
     SmartDashboard.putNumber("Shooter/TargetBottomRPS", targetBottomRps);

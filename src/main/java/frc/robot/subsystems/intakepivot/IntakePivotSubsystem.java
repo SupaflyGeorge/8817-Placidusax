@@ -21,8 +21,9 @@ public class IntakePivotSubsystem extends SubsystemBase {
 
   private WantedState wanted = WantedState.IDLE;
 
-  private static final double DEPLOY_PCT = +0.200;
-  private static final double STOW_PCT = -0.200;
+  private static final double DEPLOY_PCT = +0.700;
+  private static final double STOW_PCT = -0.700;
+  private static final double MAX_ROT_BOTH_SIDES = 0.6200;
 
   public void setWantedState(WantedState state) {
     wanted = state;
@@ -44,13 +45,12 @@ public class IntakePivotSubsystem extends SubsystemBase {
     io.stop();
   }
 
-  // MAX is more negative on your robot
+  // MAX is both -0.34 and +0.34
   private boolean atOrPastMax() {
-    return inputs.pivotPositionRot <= Constants.IntakePivotConstants.MAX_ROT;
+    return Math.abs(inputs.pivotPositionRot) >= MAX_ROT_BOTH_SIDES;
   }
 
-  // MIN is more positive on your robot
-  
+  // keeping your original min logic
   private boolean atOrPastMin() {
     return inputs.pivotPositionRot <= Constants.IntakePivotConstants.MIN_ROT;
   }
