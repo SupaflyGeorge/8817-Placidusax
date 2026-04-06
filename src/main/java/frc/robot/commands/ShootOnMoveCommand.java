@@ -37,9 +37,16 @@ public class ShootOnMoveCommand extends Command {
   private static final double kPivotHighRot = 0.55;
   private static final double kPivotOpenLoopPercent = 0.20;
   private static final double kPivotStartDelaySec = 1.0;
+  private static final double kPivotMidRot = (kPivotLowRot + kPivotHighRot) * 0.5;
+
+  private static final double kJitterAmplitudeMps = 0.05;
+  private static final double kJitterFrequencyHz = 7.0;
+  private static final double kJitterPeriodSec = 1.0 / kJitterFrequencyHz;
+  private static final double kJitterHalfPeriodSec = kJitterPeriodSec * 0.5;
 
   private boolean pivotMovingUp = true;
   private final Timer pivotTimer = new Timer();
+  private final Timer jitterTimer = new Timer();
 
   private final SwerveRequest.FieldCentric driveRequest =
       new SwerveRequest.FieldCentric()
@@ -71,7 +78,7 @@ public class ShootOnMoveCommand extends Command {
     this.maxSpeedMps = maxSpeedMps;
     this.maxAngularRateRps = maxAngularRateRps;
 
-    this.requirements = Set.of(drivetrain, shooter, indexerSubsystem, intakePivotSubsystem);
+    requirements = Set.of(drivetrain, shooter, indexerSubsystem, intakePivotSubsystem);
   }
 
   @Override
@@ -82,29 +89,37 @@ public class ShootOnMoveCommand extends Command {
 
     intakePivotSubsystem.setWantedState(IntakePivotSubsystem.WantedState.IDLE);
 
-    double pivotRot = intakePivotSubsystem.getPivotPositionRot();
-    pivotMovingUp = pivotRot < (kPivotLowRot + kPivotHighRot) * 0.5;
+    pivotMovingUp = intakePivotSubsystem.getPivotPositionRot() < kPivotMidRot;
 
-    pivotTimer.reset();
-    pivotTimer.start();
+    pivotTimer.restart();
+    jitterTimer.restart();
   }
 
   @Override
   public void execute() {
-    double vxCmd = MathUtil.applyDeadband(xSupplier.getAsDouble(), kTransDeadband) * maxSpeedMps;
-    double vyCmd = MathUtil.applyDeadband(ySupplier.getAsDouble(), kTransDeadband) * maxSpeedMps;
+    double xInput = MathUtil.applyDeadband(xSupplier.getAsDouble(), kTransDeadband);
+    double yInput = MathUtil.applyDeadband(ySupplier.getAsDouble(), kTransDeadband);
+    double manualOmegaInput =
+        MathUtil.applyDeadband(manualOmegaSupplier.getAsDouble(), kRotDeadband);
 
-    double manual = MathUtil.applyDeadband(manualOmegaSupplier.getAsDouble(), kRotDeadband);
+    double vxCmd = xInput * maxSpeedMps;
+    double vyCmd = yInput * maxSpeedMps;
+
     double omegaCmdRadPerSec;
-
-    if (Math.abs(manual) > kManualOverride) {
-      omegaCmdRadPerSec = manual * maxAngularRateRps;
+    if (Math.abs(manualOmegaInput) > kManualOverride) {
+      omegaCmdRadPerSec = manualOmegaInput * maxAngularRateRps;
     } else {
-      boolean hasTarget = vision.hasTarget();
-      omegaCmdRadPerSec = hasTarget ? vision.calcAimOmegaRadPerSec() : 0.0;
+      omegaCmdRadPerSec = vision.hasTarget() ? vision.calcAimOmegaRadPerSec() : 0.0;
     }
 
     omegaCmdRadPerSec = MathUtil.clamp(omegaCmdRadPerSec, -maxAngularRateRps, maxAngularRateRps);
+
+    boolean ready = shooter.flywheelsAtSpeed();
+
+    if (ready) {
+      double phaseSec = jitterTimer.get() % kJitterPeriodSec;
+      vyCmd += phaseSec < kJitterHalfPeriodSec ? kJitterAmplitudeMps : -kJitterAmplitudeMps;
+    }
 
     drivetrain.setControl(
         driveRequest
@@ -112,31 +127,31 @@ public class ShootOnMoveCommand extends Command {
             .withVelocityY(vyCmd)
             .withRotationalRate(omegaCmdRadPerSec));
 
-    boolean ready = shooter.flywheelsAtSpeed();
-
     shooter.setFeedEnabled(ready);
     indexerSubsystem.setWantedState(
         ready ? IndexerSubsystem.WantedState.INDEX : IndexerSubsystem.WantedState.IDLE);
 
-    if (pivotTimer.hasElapsed(kPivotStartDelaySec)) {
-      double pivotRot = intakePivotSubsystem.getPivotPositionRot();
-
-      if (pivotRot >= kPivotHighRot) {
-        pivotMovingUp = false;
-      } else if (pivotRot <= kPivotLowRot) {
-        pivotMovingUp = true;
-      }
-
-      intakePivotSubsystem.setOpenLoopPercent(
-          pivotMovingUp ? kPivotOpenLoopPercent : -kPivotOpenLoopPercent);
-    } else {
+    if (!pivotTimer.hasElapsed(kPivotStartDelaySec)) {
       intakePivotSubsystem.stopOpenLoop();
+      return;
     }
+
+    double pivotRot = intakePivotSubsystem.getPivotPositionRot();
+
+    if (pivotRot >= kPivotHighRot) {
+      pivotMovingUp = false;
+    } else if (pivotRot <= kPivotLowRot) {
+      pivotMovingUp = true;
+    }
+
+    intakePivotSubsystem.setOpenLoopPercent(
+        pivotMovingUp ? kPivotOpenLoopPercent : -kPivotOpenLoopPercent);
   }
 
   @Override
   public void end(boolean interrupted) {
     pivotTimer.stop();
+    jitterTimer.stop();
 
     shooter.setFeedEnabled(false);
     shooter.setWantedState(ShooterSubsystem.WantedState.IDLE);

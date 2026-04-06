@@ -1,6 +1,15 @@
-// Copyright (c) FIRST and other WPILib contributors.
-// Open Source Software; you can modify and/or share it under the terms of
-// the WPILib BSD license file in the root directory of this project.
+/* 
+ _____  _               _____ _____ _____  _    _  _____           __   __
+|  __ \| |        /\   / ____|_   _|  __ \| |  | |/ ____|    /\    \ \ / /
+| |__) | |       /  \ | |      | | | |  | | |  | | (___     /  \    \ V / 
+|  ___/| |      / /\ \| |      | | | |  | | |  | |\___ \   / /\ \    > <  
+| |    | |____ / ____ \ |____ _| |_| |__| | |__| |____) | / ____ \  / . \ 
+|_|    |______/_/    \_\_____|_____|_____/ \____/|_____/ /_/    \_\/_/ \_\
+
+ ====================================================
+
+ 2026 FRC Team 8817 - Buccaneer Robotics
+*/
 
 package frc.robot;
 
@@ -27,7 +36,6 @@ import frc.robot.subsystems.shooter.ShooterSubsystem;
 import frc.robot.subsystems.vision.Vision;
 import frc.robot.commands.ShootOnMoveCommand;
 import frc.robot.commands.autos.DepotSingleSwipe;
-import frc.robot.commands.autos.DepotSingleSwipeRed;
 import frc.robot.commands.autos.DriveStraight;
 import frc.robot.commands.autos.Hub;
 import frc.robot.commands.autos.OutpostDoubleSwipe;

@@ -42,14 +42,14 @@ public class OutpostSingleSwipe {
     PathPlannerPath shoot;
     PathPlannerPath homeDepot;
     PathPlannerPath half;
-    PathPlannerPath full;
+
 
     try {
       toZone = PathPlannerPath.fromPathFile("To Zone");
       shoot = PathPlannerPath.fromPathFile("Collect");
       homeDepot = PathPlannerPath.fromPathFile("Travel");
       half = PathPlannerPath.fromPathFile("Half");
-      full = PathPlannerPath.fromPathFile("Full");
+    
     } catch (Exception e) {
       e.printStackTrace();
       return Commands.none();

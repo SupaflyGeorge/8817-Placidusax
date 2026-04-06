@@ -89,13 +89,13 @@ public class IntakePivotIOTalonFX implements IntakePivotIO {
     inputs.motorAmps = motorAmps.getValueAsDouble();
     inputs.motorTempC = motorTemp.getValueAsDouble();
 
-    // Real continuous position for control
+
     inputs.pivotPositionRot = motorPos.getValueAsDouble();
 
-    // Real continuous velocity for control/debug
+
     inputs.pivotVelocityRps = motorVel.getValueAsDouble();
 
-    // Absolute encoder for debug only - this will wrap
+    
     inputs.pivotAbsPositionRot = cancoderAbs.getValueAsDouble();
 
     inputs.homed = seeded;

@@ -18,7 +18,7 @@ public interface IntakePivotIO {
     // Real continuous velocity from TalonFX
     public double pivotVelocityRps;
 
-    // Absolute CANcoder position for debug only (this will wrap)
+
     public double pivotAbsPositionRot;
 
     public boolean homed;

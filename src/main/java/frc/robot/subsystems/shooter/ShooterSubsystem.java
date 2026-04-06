@@ -333,7 +333,7 @@ public class ShooterSubsystem extends SubsystemBase {
       }
 
       case MANUAL_SHOT -> {
-        targetHoodRot = manualHoodRot;
+        targetHoodRot = Constants.ShooterConstants.HOOD_MAX_ROT;
         targetTopRps = manualTopRps + shooterRpsOffset;
         targetBottomRps = manualBottomRps + shooterRpsOffset;
 

@@ -165,6 +165,9 @@ public class Vision extends SubsystemBase {
     var targets = res.getTargets();
 
     if (targets.size() == 1) {
+
+
+      
       var t = targets.get(0);
       if (hubIDs.contains(t.getFiducialId())) {
         yawTotal += Units.degreesToRadians(t.getYaw());

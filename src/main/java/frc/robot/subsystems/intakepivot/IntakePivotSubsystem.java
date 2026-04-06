@@ -50,7 +50,7 @@ public class IntakePivotSubsystem extends SubsystemBase {
     return Math.abs(inputs.pivotPositionRot) >= MAX_ROT_BOTH_SIDES;
   }
 
-  // keeping your original min logic
+  // MIN is both -0.62 and +0.62
   private boolean atOrPastMin() {
     return inputs.pivotPositionRot <= Constants.IntakePivotConstants.MIN_ROT;
   }
