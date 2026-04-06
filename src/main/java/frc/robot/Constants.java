@@ -134,9 +134,9 @@ public final class Constants {
     private IndexerConstants() {}
 
     public static final int BELTER_ID = 15;
-    public static final double BELT_PERCENT = 0.9;
+    public static final double BELT_PERCENT = 1.0;
     public static final boolean BELT_INVERTED = true;
-    public static final double BELT_SUPPLY_LIMIT_A = 30.0;
+    public static final double BELT_SUPPLY_LIMIT_A = 32.0;
   }
 
   public static final class IntakePivotConstants {

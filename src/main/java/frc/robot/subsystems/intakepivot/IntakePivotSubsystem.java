@@ -25,6 +25,10 @@ public class IntakePivotSubsystem extends SubsystemBase {
   private static final double STOW_PCT = -0.700;
   private static final double MAX_ROT_BOTH_SIDES = 0.6200;
 
+  private static final double SLOWDOWN_ZONE_ROT = 0.15;
+
+  private static final double MIN_SLOW_PCT = 0.10;
+
   public void setWantedState(WantedState state) {
     wanted = state;
   }
@@ -45,14 +49,38 @@ public class IntakePivotSubsystem extends SubsystemBase {
     io.stop();
   }
 
-  // MAX is both -0.34 and +0.34
   private boolean atOrPastMax() {
     return Math.abs(inputs.pivotPositionRot) >= MAX_ROT_BOTH_SIDES;
   }
 
-  // MIN is both -0.62 and +0.62
   private boolean atOrPastMin() {
     return inputs.pivotPositionRot <= Constants.IntakePivotConstants.MIN_ROT;
+  }
+
+
+  private double calcDecelFactor(double currentRot, double targetRot) {
+    double remaining = Math.abs(targetRot - currentRot);
+
+    if (remaining >= SLOWDOWN_ZONE_ROT) {
+      return 1.0;
+    }
+
+
+    return remaining / SLOWDOWN_ZONE_ROT;
+  }
+
+  private double applyDecel(double fullPct, double currentRot, double targetRot) {
+    double factor = calcDecelFactor(currentRot, targetRot);
+    double scaled = fullPct * factor;
+
+    // Ensure we don't go below the minimum creep speed
+    double minOutput = Math.copySign(MIN_SLOW_PCT, fullPct);
+
+    if (Math.abs(scaled) < MIN_SLOW_PCT) {
+      return minOutput;
+    }
+
+    return scaled;
   }
 
   @Override
@@ -68,7 +96,7 @@ public class IntakePivotSubsystem extends SubsystemBase {
         if (atOrPastMax()) {
           out = 0.0;
         } else {
-          out = DEPLOY_PCT;
+          out = applyDecel(DEPLOY_PCT, inputs.pivotPositionRot, MAX_ROT_BOTH_SIDES);
         }
       }
 
@@ -76,7 +104,7 @@ public class IntakePivotSubsystem extends SubsystemBase {
         if (atOrPastMin()) {
           out = 0.0;
         } else {
-          out = STOW_PCT;
+          out = applyDecel(STOW_PCT, inputs.pivotPositionRot, Constants.IntakePivotConstants.MIN_ROT);
         }
       }
     }
@@ -94,6 +122,7 @@ public class IntakePivotSubsystem extends SubsystemBase {
     SmartDashboard.putBoolean("IntakePivot/AtMin", atOrPastMin());
     SmartDashboard.putBoolean("IntakePivot/AtMax", atOrPastMax());
     SmartDashboard.putBoolean("IntakePivot/Homed", inputs.homed);
+    SmartDashboard.putNumber("IntakePivot/OutputPct", out);
   }
 
   @Override
