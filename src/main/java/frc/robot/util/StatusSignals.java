@@ -6,8 +6,13 @@ import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusCode;
 import com.ctre.phoenix6.StatusSignal;
 
+/**
+ * Utility to batch-refresh all tracked CTRE status signals in one CAN call.
+ * Instead of each subsystem calling refreshAll() separately, you register
+ * signals here and call StatusSignals.refreshAll() once per loop.
+ * (Currently not used in this project but available if needed.)
+ */
 public class StatusSignals {
-
     private static List<StatusSignal<?>> statusSignals = new ArrayList<>();
     private static StatusSignal<?>[] statusSignalsArray = null;
 
@@ -22,10 +27,6 @@ public class StatusSignals {
         }
     }
 
-    /**
-     * Calls {@link BaseStatusSignal#refreshAll()} on all tracked signals.
-     * @return The StatusCode returned by {@link BaseStatusSignal#refreshAll()}.
-     */
     public static StatusCode refreshAll() {
         return BaseStatusSignal.refreshAll(getArray());
     }
