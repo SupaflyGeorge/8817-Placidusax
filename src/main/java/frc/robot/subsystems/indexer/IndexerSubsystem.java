@@ -11,7 +11,7 @@ import frc.robot.Constants;
 @Logged
 public class IndexerSubsystem extends SubsystemBase {
 
-  public enum WantedState { IDLE, INDEX }
+  public enum WantedState { IDLE, INDEX, SPIT }
 
   private final IndexerIO io = new IndexerIOTalonFX();
   private final IndexerIO.IndexerIOInputs inputs = new IndexerIO.IndexerIOInputs();
@@ -29,7 +29,8 @@ public class IndexerSubsystem extends SubsystemBase {
     io.updateInputs(inputs);
     switch (wanted) {
       case IDLE  -> io.stop();
-      case INDEX -> io.setBeltPercent(Constants.IndexerConstants.BELT_PERCENT);
+      case INDEX -> io.setBeltPercent(Constants.IndexerConstants.BELT_PERCENT * -1);
+      case SPIT  -> io.setBeltPercent(Constants.IndexerConstants.BELT_PERCENT);
     }
   }
 

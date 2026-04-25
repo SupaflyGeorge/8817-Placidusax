@@ -21,10 +21,9 @@ import frc.robot.subsystems.vision.Vision;
  * Depot Single Swipe auto:
  *   1. Drive to depot zone while intaking
  *   2. Shoot the collected piece
- *   3. Drive to the depot (HOME DEPOT path) to pick up another piece
+ *   3. Drive to the depot (HOME DEPOT path)
  *   4. Drive back and shoot again
  *
- * The second shot gets a generous 10s timeout since it's end-of-auto.
  */
 public class DepotSingleSwipe {
   private DepotSingleSwipe() {}
@@ -63,8 +62,8 @@ public class DepotSingleSwipe {
         Commands.deadline(
             Commands.sequence(
                 Commands.runOnce(() -> intake.setWantedState(IntakeSubsystem.WantedState.INTAKE), intake),
-                Commands.deadline(AutoBuilder.followPath(toZone), Commands.waitSeconds(0.35)),
-                Commands.waitSeconds(0.35),
+                Commands.deadline(AutoBuilder.followPath(toZone), Commands.waitSeconds(0.00)),
+                Commands.waitSeconds(0.00),
                 Commands.runOnce(() -> intake.setWantedState(IntakeSubsystem.WantedState.IDLE), intake),
                 Commands.deadline(AutoBuilder.followPath(shoot),
                     Commands.startEnd(() -> intake.setWantedState(IntakeSubsystem.WantedState.INTAKE),
@@ -75,16 +74,16 @@ public class DepotSingleSwipe {
         // Phase 2: first shot
         new AutoShootAlignedCommand(drivetrain, shooter, indexer, vision, intakePivot, maxAngularRateRps).withTimeout(3.0),
 
-        // Phase 3: drive to depot, pick up, drive back (prepping shooter along the way)
+        // Phase 3: Second Swipe
         Commands.deadline(
             Commands.sequence(
-                Commands.waitSeconds(0.35),
+                Commands.waitSeconds(0.00),
                 Commands.deadline(AutoBuilder.followPath(homeDepot),
                     Commands.startEnd(() -> shooter.setWantedState(ShooterSubsystem.WantedState.PREPARE_SHOT),
                         () -> shooter.setWantedState(ShooterSubsystem.WantedState.IDLE), shooter),
                     Commands.startEnd(() -> intake.setWantedState(IntakeSubsystem.WantedState.INTAKE),
                         () -> intake.setWantedState(IntakeSubsystem.WantedState.IDLE), intake)),
-                Commands.waitSeconds(0.35),
+                Commands.waitSeconds(0.00),
                 Commands.deadline(AutoBuilder.followPath(back),
                     Commands.startEnd(() -> shooter.setWantedState(ShooterSubsystem.WantedState.PREPARE_SHOT),
                         () -> shooter.setWantedState(ShooterSubsystem.WantedState.IDLE), shooter),
@@ -92,7 +91,7 @@ public class DepotSingleSwipe {
                         () -> intake.setWantedState(IntakeSubsystem.WantedState.IDLE), intake))),
             holdPivotDeployed(intakePivot)),
 
-        // Phase 4: second shot (generous timeout)
+        // Phase 4: second shot
         new AutoShootAlignedCommand(drivetrain, shooter, indexer, vision, intakePivot, maxAngularRateRps).withTimeout(10.0));
   }
 }

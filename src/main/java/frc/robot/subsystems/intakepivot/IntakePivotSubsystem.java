@@ -24,7 +24,7 @@ public class IntakePivotSubsystem extends SubsystemBase {
   private final IntakePivotIO.IntakePivotIOInputs inputs = new IntakePivotIO.IntakePivotIOInputs();
   private WantedState wanted = WantedState.IDLE;
 
-  private static final double DEPLOY_PCT = +0.700;        // full speed deploying
+  private static final double DEPLOY_PCT = +1.00;        // full speed deploying
   private static final double STOW_PCT = -0.700;          // full speed stowing
   private static final double MAX_ROT_BOTH_SIDES = 0.6200; // deploy limit
   private static final double SLOWDOWN_ZONE_ROT = 0.15;   // start braking this far from limit

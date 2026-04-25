@@ -52,7 +52,7 @@ public class RobotContainer {
 
     // Max translation speed (m/s) and rotation speed (rad/s)
     private double MaxSpeed = 1.0 * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond);
-    private double MaxAngularRate = RotationsPerSecond.of(1.5).in(RadiansPerSecond);
+    private double MaxAngularRate = RotationsPerSecond.of(1.35).in(RadiansPerSecond);
 
     // Field-centric drive request reused every loop cycle.
     // "Push stick forward = robot drives away from driver wall" regardless of heading.
@@ -134,20 +134,24 @@ public class RobotContainer {
             .whileTrue(Commands.runOnce(() -> intake.setWantedState(IntakeSubsystem.WantedState.INTAKE)))
             .whileFalse(Commands.runOnce(() -> intake.setWantedState(IntakeSubsystem.WantedState.IDLE)));
         driver.povDown()
-            .whileTrue(Commands.runOnce(() -> intake.setWantedState(IntakeSubsystem.WantedState.SPIT)))
-            .whileFalse(Commands.runOnce(() -> intake.setWantedState(IntakeSubsystem.WantedState.IDLE)));
-        driver.leftBumper().onTrue(new InstantCommand(() -> {
-            shooter.setFeedEnabled(true);
-            shooter.setWantedState(ShooterSubsystem.WantedState.MANUAL_SHOT);
-        }));
-        driver.leftBumper().onFalse(new InstantCommand(() -> {
-            shooter.setFeedEnabled(false);
-            if (operator.rightBumper().getAsBoolean()) {
-                shooter.setWantedState(ShooterSubsystem.WantedState.PREPARE_SHOT);
-            } else {
-                shooter.setWantedState(ShooterSubsystem.WantedState.IDLE);
-            }
-        }));
+    .whileTrue(
+        Commands.run(() -> {
+            indexer.setWantedState(IndexerSubsystem.WantedState.SPIT );
+            intake.setWantedState(IntakeSubsystem.WantedState.SPIT);
+        })
+    )
+    .onFalse(
+        Commands.runOnce(() -> {
+            indexer.setWantedState(IndexerSubsystem.WantedState.IDLE);
+            intake.setWantedState(IntakeSubsystem.WantedState.IDLE);
+        })
+    );
+
+        // Left bumper (hold) = manual shot mode (operator-tuned hood + RPS, same aim/feed/index/pivot behavior)
+        driver.leftBumper().whileTrue(
+            new ShootOnMoveCommand(drivetrain, shooter, vision, indexer, intakePivot,
+                () -> driver.getLeftY(), () -> driver.getLeftX(), () -> -driver.getRightX(),
+                MaxSpeed, MaxAngularRate, true));
 
         // --- DRIVER: Pivot + Indexer ---
         driver.a()
@@ -163,6 +167,7 @@ public class RobotContainer {
         driver.y().onTrue(Commands.runOnce(drivetrain::playMusic));
         driver.povRight().onTrue(Commands.runOnce(drivetrain::stopMusic));
 
+        
         // --- OPERATOR: Redundant intake/pivot/indexer ---
         operator.y()
             .whileTrue(Commands.runOnce(() -> intakePivot.setWantedState(IntakePivotSubsystem.WantedState.DEPLOY)))
@@ -189,7 +194,7 @@ public class RobotContainer {
         operator.povRight().onTrue(new InstantCommand(() -> shooter.adjustManualShooterRps(+1.0)));
         operator.povLeft().onTrue(new InstantCommand(() -> shooter.adjustManualShooterRps(-1.0)));
 
-        // RB = table-based shot prep, LB = manual fallback shot
+        // RB = table-based shot prep
         operator.rightBumper().onTrue(new InstantCommand(() -> {
             shooter.setFeedEnabled(false);
             shooter.setWantedState(ShooterSubsystem.WantedState.PREPARE_SHOT);
@@ -203,18 +208,12 @@ public class RobotContainer {
                 shooter.setWantedState(ShooterSubsystem.WantedState.IDLE);
             }
         }));
-        operator.leftBumper().onTrue(new InstantCommand(() -> {
-            shooter.setFeedEnabled(true);
-            shooter.setWantedState(ShooterSubsystem.WantedState.MANUAL_SHOT);
-        }));
-        operator.leftBumper().onFalse(new InstantCommand(() -> {
-            shooter.setFeedEnabled(false);
-            if (operator.rightBumper().getAsBoolean()) {
-                shooter.setWantedState(ShooterSubsystem.WantedState.PREPARE_SHOT);
-            } else {
-                shooter.setWantedState(ShooterSubsystem.WantedState.IDLE);
-            }
-        }));
+
+        // LB = manual shot mode (operator-tuned hood + RPS, same aim/feed/index/pivot behavior)
+        operator.leftBumper().whileTrue(
+            new ShootOnMoveCommand(drivetrain, shooter, vision, indexer, intakePivot,
+                () -> driver.getLeftY(), () -> driver.getLeftX(), () -> -driver.getRightX(),
+                MaxSpeed, MaxAngularRate, true));
     }
 
     /** Called every 20ms - feeds vision pose measurements into the drivetrain estimator. */

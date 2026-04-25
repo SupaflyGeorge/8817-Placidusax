@@ -3,13 +3,13 @@
   "waypoints": [
     {
       "anchor": {
-        "x": 3.76778313253012,
-        "y": 0.9879457917261072
+        "x": 3.120413694721825,
+        "y": 0.6127246790299581
       },
       "prevControl": null,
       "nextControl": {
-        "x": 4.4104532633879865,
-        "y": 0.9271511930086584
+        "x": 3.7630838255796917,
+        "y": 0.5519300803125093
       },
       "isLocked": false,
       "linkedName": "Traveled Swipe 1"
@@ -20,12 +20,12 @@
         "y": 1.1391566265060238
       },
       "prevControl": {
-        "x": 5.397481569862143,
-        "y": 0.7431640387150662
+        "x": 5.578758915834522,
+        "y": 0.30219686162624826
       },
       "nextControl": {
-        "x": 7.8037827596822975,
-        "y": 1.3450896301874684
+        "x": 7.709153649317858,
+        "y": 1.5741980764648882
       },
       "isLocked": false,
       "linkedName": null
@@ -58,8 +58,8 @@
   "pointTowardsZones": [],
   "eventMarkers": [],
   "globalConstraints": {
-    "maxVelocity": 4.0,
-    "maxAcceleration": 4.0,
+    "maxVelocity": 5.5,
+    "maxAcceleration": 7.0,
     "maxAngularVelocity": 540.0,
     "maxAngularAcceleration": 720.0,
     "nominalVoltage": 12.0,

@@ -69,6 +69,10 @@ public class ShootOnMoveCommand extends Command {
 
   private final Set<Subsystem> requirements;
 
+  // When true, uses MANUAL_SHOT (operator-tuned values) instead of table-based SHOOTING
+  private final boolean useManualShot;
+
+  /** Normal constructor — uses table-based SHOOTING mode. */
   public ShootOnMoveCommand(
       CommandSwerveDrivetrain drivetrain, ShooterSubsystem shooter,
       Vision vision, IndexerSubsystem indexerSubsystem,
@@ -76,6 +80,19 @@ public class ShootOnMoveCommand extends Command {
       DoubleSupplier xSupplier, DoubleSupplier ySupplier,
       DoubleSupplier manualOmegaSupplier,
       double maxSpeedMps, double maxAngularRateRps) {
+    this(drivetrain, shooter, vision, indexerSubsystem, intakePivotSubsystem,
+         xSupplier, ySupplier, manualOmegaSupplier, maxSpeedMps, maxAngularRateRps, false);
+  }
+
+  /** Full constructor — pass true for useManualShot to use operator-tuned values. */
+  public ShootOnMoveCommand(
+      CommandSwerveDrivetrain drivetrain, ShooterSubsystem shooter,
+      Vision vision, IndexerSubsystem indexerSubsystem,
+      IntakePivotSubsystem intakePivotSubsystem,
+      DoubleSupplier xSupplier, DoubleSupplier ySupplier,
+      DoubleSupplier manualOmegaSupplier,
+      double maxSpeedMps, double maxAngularRateRps,
+      boolean useManualShot) {
     this.drivetrain = drivetrain;
     this.shooter = shooter;
     this.vision = vision;
@@ -86,12 +103,15 @@ public class ShootOnMoveCommand extends Command {
     this.manualOmegaSupplier = manualOmegaSupplier;
     this.maxSpeedMps = maxSpeedMps;
     this.maxAngularRateRps = maxAngularRateRps;
+    this.useManualShot = useManualShot;
     requirements = Set.of(drivetrain, shooter, indexerSubsystem, intakePivotSubsystem);
   }
 
   @Override
   public void initialize() {
-    shooter.setWantedState(ShooterSubsystem.WantedState.SHOOTING);
+    shooter.setWantedState(useManualShot
+        ? ShooterSubsystem.WantedState.MANUAL_SHOT
+        : ShooterSubsystem.WantedState.SHOOTING);
     shooter.setFeedEnabled(false);
     indexerSubsystem.setWantedState(IndexerSubsystem.WantedState.IDLE);
     intakePivotSubsystem.setWantedState(IntakePivotSubsystem.WantedState.IDLE);
