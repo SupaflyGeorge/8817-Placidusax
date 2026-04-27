@@ -17,6 +17,7 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
 import frc.robot.subsystems.shooterhood.HoodIO;
 import frc.robot.subsystems.shooterhood.HoodIOTalonFX;
+import frc.robot.subsystems.vision.Vision;
 
 @Logged
 public class ShooterSubsystem extends SubsystemBase {
@@ -191,74 +192,10 @@ public boolean flywheelsAtSpeed() {
 
   @NotLogged
   public TagAimData getHubTagAimData() {
-    PhotonPipelineResult res = camera.getLatestResult();
-    if (res == null || !res.hasTargets()) return new TagAimData(-1.0, -1.0, 0.0);
+    Vision.CenterFullCalcResult res = Vision.calcHubCenterDistAndYaw(camera);
 
-    boolean blue =
-        DriverStation.getAlliance().orElse(DriverStation.Alliance.Blue)
-            == DriverStation.Alliance.Blue;
-    List<Integer> hubIds = blue ? List.of(21, 24, 25, 26, 18, 27) : List.of(2, 11, 8, 5, 9, 10);
-    List<Integer> hubCenters = blue ? List.of(18, 21, 26) : List.of(2, 5, 10);
-    
-    double camX = Constants.VisionConstants.CAM_X_METERS;
-    double camY = Constants.VisionConstants.CAM_Y_METERS;
-
-    double dist = 0.0;
-    double forward = 0.0;
-    double lateral = 0.0;
-    int tagCount = 0;
-    
-    var targets = res.getTargets();
-
-    // Strategy depends on how many hub tags we see
-    if (targets.size() == 1) {
-      var t = targets.get(0);
-      if (hubIds.contains(t.getFiducialId())) { dist += Units.degreesToRadians(t.getYaw()); tagCount++; }
-    } else if (targets.size() == 2) {
-      var t0 = targets.get(0); var t1 = targets.get(1);
-      if ((t1.getFiducialId() - t0.getFiducialId()) == (hubCenters.contains(t0.getFiducialId()) ? 1 : -1)
-          || !(hubCenters.contains(t0.getFiducialId()) || hubCenters.contains(t1.getFiducialId()))) {
-        for (var t : targets) { 
-          if (hubIds.contains(t.getFiducialId())) { 
-            forward += t.getBestCameraToTarget().getX() + camX;
-            lateral += t.getBestCameraToTarget().getY() + camY;
-            dist += Math.hypot(t.getBestCameraToTarget().getX(), t.getBestCameraToTarget().getY());
-            tagCount++;
-          } }
-      } else {
-        for (var t : targets) {
-          if (hubCenters.contains(t.getFiducialId())) {
-            forward += t.getBestCameraToTarget().getX() + camX;
-            lateral += t.getBestCameraToTarget().getY() + camY;
-            dist += Math.hypot(t.getBestCameraToTarget().getX(), t.getBestCameraToTarget().getY());
-            tagCount++;
-          }
-        }
-      }
-    } else if (targets.size() == 3) {
-      for (var t : targets) {
-        if (hubCenters.contains(t.getFiducialId())) {
-          forward += t.getBestCameraToTarget().getX() + camX;
-          lateral += t.getBestCameraToTarget().getY() + camY;
-          dist += Math.hypot(t.getBestCameraToTarget().getX(), t.getBestCameraToTarget().getY());
-          tagCount++;
-        }
-      }
-    } else {
-      for (var t : targets) {
-        if (hubIds.contains(t.getFiducialId())) {
-          forward += t.getBestCameraToTarget().getX() + camX;
-          lateral += t.getBestCameraToTarget().getY() + camY;
-          dist += Math.hypot(t.getBestCameraToTarget().getX(), t.getBestCameraToTarget().getY());
-          tagCount++;
-        }
-      }
-    }
-    
-
-
-    if (tagCount == 0) return new TagAimData(-1.0, -1.0, 0.0);
-    return new TagAimData(dist / tagCount, forward / tagCount, lateral / tagCount);
+    if (res.isValid()) return new TagAimData(-1.0, -1.0, 0.0);
+    return new TagAimData(res.getDist(), res.getForward(), res.getLateral());
   }
 
   @NotLogged

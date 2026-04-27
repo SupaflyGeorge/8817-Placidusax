@@ -10,6 +10,7 @@ import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -113,6 +114,24 @@ public class Vision extends SubsystemBase {
     }
   }
 
+  private static double getCorrectedYaw(double rawYaw, double rawDist) {
+    
+    boolean flip = false;
+    if (rawYaw % Math.PI != rawYaw) {
+      rawYaw = -rawYaw;
+      flip = true;
+    }
+
+    final double xTrans = Constants.VisionConstants.CAM_X_METERS;
+    final double yTrans = Constants.VisionConstants.CAM_Y_METERS;
+    final double fullTrans = Math.hypot(xTrans, yTrans);
+
+    double futureDist = Math.sqrt(Math.pow(rawDist,2) + Math.pow(fullTrans,2) - 2 * rawDist * fullTrans * Math.cos(Units.degreesToRadians(rawYaw)));
+    double yawCorrected = (flip ? -rawYaw : rawYaw) + Units.radiansToDegrees(Math.acos((-Math.pow(fullTrans,2) + Math.pow(futureDist,2) + Math.pow(rawDist, 2)) / (2 * futureDist * rawDist)));
+
+    return yawCorrected;
+  }
+
   // we replaced this offset in the main thing
   private double getRobotCenterYawRad(PhotonTrackedTarget t) {
     double xCam = t.getBestCameraToTarget().getX();
@@ -125,25 +144,39 @@ public class Vision extends SubsystemBase {
   }
 
   // I know this isn't very organized but you get the idea hopefully
-  private static class CenterFullCalcResult {
+  public static class CenterFullCalcResult {
     final double dist;
+    final double forward;
+    final double lateral;
     final double yawRad;
     final int tagsUsed;
 
-    CenterFullCalcResult (double dist, double yawRad, int tagsUsed) {
+    CenterFullCalcResult (double dist, double forward, double lateral, double yawRad, int tagsUsed) {
       this.dist = dist;
+      this.forward = forward;
+      this.lateral = lateral;
       this.yawRad = yawRad;
       this.tagsUsed = tagsUsed;
     }
 
-    CenterYawResult toCenterYawResult() {
+    private CenterYawResult toCenterYawResult() {
       return new CenterYawResult(yawRad, tagsUsed);
     }
+
+    public boolean isValid(){
+      return tagsUsed != 0;
+    }
+
+    public double getDist(){  return dist; }
+    public double getForward(){  return forward; }
+    public double getLateral(){  return lateral; }
+    public double getYawRad(){  return yawRad; }
+    public double gettagsUsed(){  return tagsUsed; }
   }
 
-  public CenterFullCalcResult calcHubCenterDistAndYaw() {
+  public static CenterFullCalcResult calcHubCenterDistAndYaw(PhotonCamera camera) {
     PhotonPipelineResult res = camera.getLatestResult();
-    if (res == null || !res.hasTargets()) return new CenterFullCalcResult(0.0, 0.0, 0);
+    if (res == null || !res.hasTargets()) return new CenterFullCalcResult(0.0, 0.0,0.0, 0.0, 0);
 
     List<Integer> hubCenters = new ArrayList<>();
     List<Integer> hubIDs = new ArrayList<>();
@@ -163,7 +196,7 @@ public class Vision extends SubsystemBase {
     double rawDist = 0.0;
     int tagCount = 0;
     // remove non-hub targets
-    var targets = res.getTargets().stream().filter((t) -> hubIDs.contains(t.getFiducialId())).collect(Collectors.toList());
+    List<PhotonTrackedTarget> targets = res.getTargets().stream().filter((t) -> hubIDs.contains(t.getFiducialId())).collect(Collectors.toList());
 
     if (targets.size() == 1) {
       var t = targets.get(0);
@@ -204,7 +237,7 @@ public class Vision extends SubsystemBase {
       }
     }
 
-    if (tagCount == 0) return new CenterFullCalcResult(0.0, 0.0, 0);
+    if (tagCount == 0) return new CenterFullCalcResult(0.0, 0.0,0.0, 0.0, 0);
 
 
     double rawYaw = yawTotal / tagCount;
@@ -212,6 +245,7 @@ public class Vision extends SubsystemBase {
     
 
     // Yaw Correction (more inaccurate because it uses rawDist)
+    //   not using the helper function because I also need futureDist
     boolean flip = false;
     if (rawYaw % Math.PI != rawYaw) {
       rawYaw = -rawYaw;
@@ -222,17 +256,82 @@ public class Vision extends SubsystemBase {
     final double yTrans = Constants.VisionConstants.CAM_Y_METERS;
     final double fullTrans = Math.hypot(xTrans, yTrans);
 
-    final double futureDist = Math.sqrt(Math.pow(rawDist,2) + Math.pow(fullTrans,2) - 2 * rawDist * fullTrans * Math.cos(rawYaw));
-    final double YawCorrected = (flip ? -rawYaw : rawYaw) + Math.acos((-Math.pow(fullTrans,2) + Math.pow(futureDist,2) + Math.pow(rawDist, 2)) / (2 * futureDist * dist));
+    double futureDist = Math.sqrt(Math.pow(rawDist,2) + Math.pow(fullTrans,2) - 2 * rawDist * fullTrans * Math.cos(Units.degreesToRadians(rawYaw)));
+    double yawCorrected = (flip ? -rawYaw : rawYaw) + Units.radiansToDegrees(Math.acos((-Math.pow(fullTrans,2) + Math.pow(futureDist,2) + Math.pow(rawDist, 2)) / (2 * futureDist * rawDist)));
     
-    // Dist Correction (more accureate because it's uses YawCorrected)
+    // Dist Correction (more accureate because it's uses yawCorrected)
     
+    final double hubCenterToEdge = Units.inchesToMeters(23.5); // in meters (I hope that is photon vision's translation unit)
+    final double hubCenterToOffsetTag = Units.inchesToMeters(Math.sqrt(748.25)); //-------------------------------------------------------------------
+    if (tagCount >= 2) {
+      PhotonTrackedTarget t0 = targets.get(0);
+      PhotonTrackedTarget t1 = targets.get(1);
 
-    return new CenterFullCalcResult(futureDist, YawCorrected, tagCount);
+      double t0Dist = Math.hypot(t0.getBestCameraToTarget().getX(), t0.getBestCameraToTarget().getY());
+      double t1Dist = Math.hypot(t1.getBestCameraToTarget().getX(), t1.getBestCameraToTarget().getY());
+      
+      // Maps center ID to it's adjacent ID
+      final Map<Integer, Integer> centerIdAdjacencies = blueAlliance ? Map.of(26,25,21,24,20,19,18,27) : Map.of(10,9,5,8,4,3,2,11);
+
+      double forwardDist;
+      double lateralDist;
+      if (centerIdAdjacencies.get(t0.getFiducialId()) == t1.getFiducialId() || centerIdAdjacencies.get(t1.getFiducialId()) == t0.getFiducialId()) {
+        final double hubTagToTag = Units.inchesToMeters(14); // in meters
+
+        double centerAng = 90 + (180 - Math.abs(t0.getYaw() - t1.getYaw()) - (hubCenters.contains(t0.getFiducialId()) ? Math.acos((Math.pow(t1Dist,2) + Math.pow(hubTagToTag,2) - Math.pow(t0Dist,2)) / (2 * t1Dist * hubTagToTag)) :
+         Math.acos((Math.pow(t0Dist,2) + Math.pow(hubTagToTag,2) - Math.pow(t1Dist,2)) / (2 * t0Dist * hubTagToTag))));
+
+        // if greater than 180, subtract from 360
+        if (centerAng > 180) {  centerAng -= 360; }
+        
+        // law of cos
+        futureDist = Math.sqrt(Math.pow(hubCenterToEdge,2) + Math.pow((hubCenters.contains(t0.getFiducialId()) ? t0Dist : t1Dist),2) - 2 * hubCenterToEdge * (hubCenters.contains(t0.getFiducialId()) ? t0Dist : t1Dist) * Math.cos(Units.degreesToRadians(360-centerAng)));
+        // law of sines
+        yawCorrected += Units.radiansToDegrees(Math.asin(hubCenterToEdge * Math.sin(Units.degreesToRadians(centerAng))/futureDist));
+
+        //Uses rotation math but treats the center as (0, futureDist)
+        double robotAngle = getCorrectedYaw(t0.getYaw(), Math.hypot(t0.getBestCameraToTarget().getX(), t0.getBestCameraToTarget().getY())) + Math.acos((Math.pow(t0Dist, 2) + Math.pow(futureDist, 2) - Math.pow(hubCenterToEdge,2)) / (2 * t0Dist * futureDist));
+        forwardDist = -futureDist * Math.sin(robotAngle);
+        lateralDist = futureDist * Math.cos(robotAngle);
+      } else {
+        // This should work for the other case too but it is longer
+        double hubTagToTag;
+        double t0ToCenter;
+        double hubCenterAngle;
+        if (hubCenters.contains(t0.getFiducialId()) || hubCenters.contains(t1.getFiducialId())){
+          hubTagToTag = Units.inchesToMeters(Math.sqrt(642.5)); // same as Math.hypot(9.5,23.5) but in meters
+          t0ToCenter = hubCenters.contains(t0.getFiducialId()) ? hubCenterToEdge : hubCenterToOffsetTag;
+          hubCenterAngle = hubCenters.contains(t0.getFiducialId()) ? 
+          Math.acos((Math.pow(Units.inchesToMeters(23.5),2) + Math.pow(hubTagToTag,2) - Math.pow(hubCenterToOffsetTag,2))/(2*Units.inchesToMeters(23.5)*hubTagToTag))
+          : Math.acos((Math.pow(hubTagToTag,2) + Math.pow(hubCenterToOffsetTag,2) - Math.pow(Units.inchesToMeters(23.5),2))/(2*hubTagToTag*hubCenterToOffsetTag));
+        } else {
+          hubTagToTag = Units.inchesToMeters(9.5 * Math.sqrt(2)); // same as Math.hypot(9.5,9.5) but in meters
+          t0ToCenter = hubCenterToOffsetTag;
+          hubCenterAngle = Math.pow(hubTagToTag,2)/(2*hubTagToTag*hubCenterToOffsetTag);
+        }
+
+        final double tagCenterAngle = Math.acos((Math.pow(hubTagToTag,2) + Math.pow(t0Dist,2) - Math.pow(t1Dist,2))/(2 * hubTagToTag * t0Dist));
+        final double extCenterAngle = 180 - tagCenterAngle - hubCenterAngle;
+
+        lateralDist = t0ToCenter * Math.sin(extCenterAngle);
+        forwardDist = t0ToCenter * Math.cos(extCenterAngle) + t0Dist;
+
+        futureDist = Math.hypot(forwardDist, lateralDist);
+
+        // lateralDist and forwardDist do not account for the the angle of the robot towards the tags yet
+        final double robotAngle = Units.degreesToRadians(getCorrectedYaw(t0.getYaw(), Math.hypot(t0.getBestCameraToTarget().getX(), t0.getBestCameraToTarget().getY())));
+        double temp = forwardDist * Math.cos(robotAngle) - lateralDist * Math.sin(robotAngle);
+        lateralDist = forwardDist * Math.sin(robotAngle) + lateralDist * Math.cos(robotAngle);
+        forwardDist = temp;
+      }
+      return new CenterFullCalcResult(futureDist, forwardDist, lateralDist, yawCorrected, tagCount);
+    }
+
+    return new CenterFullCalcResult(futureDist, targets.get(0).getBestCameraToTarget().getX(), targets.get(0).getBestCameraToTarget().getY(), yawCorrected, tagCount);
   } 
 
   private CenterYawResult calcHubCenterYawRadWithCount() {
-    return calcHubCenterDistAndYaw().toCenterYawResult();
+    return calcHubCenterDistAndYaw(camera).toCenterYawResult();
   }
 
   public double calcAimOmegaRadPerSec() {
